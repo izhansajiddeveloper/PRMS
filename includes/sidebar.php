@@ -547,7 +547,7 @@ $user_avatar = strtoupper(substr($user_name, 0, 1));
                 </a>
             </li>
             <li class="nav-item">
-                <a href="../admin/profile.php" class="nav-link-custom">
+                <a href="<?= BASE_URL ?>admin/profile.php" class="nav-link-custom <?= ($current_page == 'profile.php') ? 'active' : '' ?>">
                     <i class="fas fa-user-circle"></i>
                     <span>My Profile</span>
                 </a>
@@ -599,12 +599,12 @@ $user_avatar = strtoupper(substr($user_name, 0, 1));
                     <span>My Appointments</span>
                 </a>
             </li>
-  <li class="nav-item">
-            <a href="../doctor/profile.php" class="nav-link-custom">
-                <i class="fas fa-user-circle"></i>
-                <span>My Profile</span>
-            </a>
-        </li>
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>doctor/profile.php" class="nav-link-custom <?= ($current_page == 'profile.php') ? 'active' : '' ?>">
+                    <i class="fas fa-user-circle"></i>
+                    <span>My Profile</span>
+                </a>
+            </li>
         <?php elseif ($role_name == 'receptionist'): // Receptionist Menu 
         ?>
             <div class="nav-group-title">
@@ -644,12 +644,36 @@ $user_avatar = strtoupper(substr($user_name, 0, 1));
                     </ul>
                 </div>
             </li>
-
-            <!-- Patient Search -->
+            <!-- Payments -->
             <li class="nav-item">
-                <a href="<?= BASE_URL ?>receptionist/search.php" class="nav-link-custom">
-                    <i class="fas fa-search"></i>
-                    <span>Search Patient</span>
+                <a class="nav-link-custom <?= (strpos($current_full_url, '/receptionist/payments/') !== false) ? 'active' : '' ?>" data-toggle="collapse" href="#paymentMgmt" role="button" aria-expanded="<?= (strpos($current_full_url, '/receptionist/payments/') !== false) ? 'true' : 'false' ?>" aria-controls="paymentMgmt">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Payments</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </a>
+                <div class="collapse <?= (strpos($current_full_url, '/receptionist/payments/') !== false) ? 'show' : '' ?>" id="paymentMgmt">
+                    <ul class="submenu">
+                        <li class="submenu-item">
+                            <a href="<?= BASE_URL ?>receptionist/payments/index.php">
+                                <i class="fas fa-list"></i>
+                                <span>All Payments</span>
+                            </a>
+                        </li>
+                        <li class="submenu-item">
+                            <a href="<?= BASE_URL ?>receptionist/payments/pending.php">
+                                <i class="fas fa-plus"></i>
+                                <span>Record Payment</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>receptionist/profile.php" class="nav-link-custom <?= ($current_page == 'profile.php') ? 'active' : '' ?>">
+                    <i class="fas fa-user-circle"></i>
+                    <span>My Profile</span>
                 </a>
             </li>
 

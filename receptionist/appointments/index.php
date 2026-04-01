@@ -5,19 +5,75 @@ require_once '../../includes/auth.php';
 // Check if user is receptionist
 checkRole(['receptionist']);
 
+// Get the logged-in receptionist's user_id
+$receptionist_user_id = $_SESSION['user_id'];
+
+// Get the receptionist's assigned category from staff table
+$receptionist_query = "SELECT s.*, u.name as receptionist_name 
+                       FROM staff s 
+                       JOIN users u ON s.user_id = u.id 
+                       WHERE s.user_id = ?";
+$stmt = mysqli_prepare($conn, $receptionist_query);
+mysqli_stmt_bind_param($stmt, "i", $receptionist_user_id);
+mysqli_stmt_execute($stmt);
+$receptionist_result = mysqli_stmt_get_result($stmt);
+$receptionist = mysqli_fetch_assoc($receptionist_result);
+
+$assigned_category_id = 0;
+$assigned_category_name = '';
+
+if ($receptionist) {
+    $department_name = '';
+    if (strpos($receptionist['address'], 'Cardiology') !== false) $department_name = 'Cardiologist';
+    elseif (strpos($receptionist['address'], 'Neurology') !== false) $department_name = 'Neurologist';
+    elseif (strpos($receptionist['address'], 'Ophthalmology') !== false) $department_name = 'Ophthalmologist';
+    elseif (strpos($receptionist['address'], 'ENT') !== false) $department_name = 'ENT Specialist';
+    elseif (strpos($receptionist['address'], 'Dermatology') !== false) $department_name = 'Dermatologist';
+    elseif (strpos($receptionist['address'], 'Pulmonology') !== false) $department_name = 'Pulmonologist';
+    elseif (strpos($receptionist['address'], 'Gastroenterology') !== false) $department_name = 'Gastroenterologist';
+    elseif (strpos($receptionist['address'], 'Orthopedic') !== false) $department_name = 'Orthopedic Surgeon';
+    elseif (strpos($receptionist['address'], 'Endocrinology') !== false) $department_name = 'Endocrinologist';
+    elseif (strpos($receptionist['address'], 'Infectious Disease') !== false) $department_name = 'Infectious Disease Specialist';
+    elseif (strpos($receptionist['address'], 'Pediatric') !== false) $department_name = 'Pediatrician';
+    elseif (strpos($receptionist['address'], 'Psychiatry') !== false) $department_name = 'Psychiatrist';
+    elseif (strpos($receptionist['address'], 'Nephrology') !== false) $department_name = 'Nephrologist';
+    elseif (strpos($receptionist['address'], 'Urology') !== false) $department_name = 'Urologist';
+    elseif (strpos($receptionist['address'], 'Gynecology') !== false) $department_name = 'Gynecologist';
+    elseif (strpos($receptionist['address'], 'Rheumatology') !== false) $department_name = 'Rheumatologist';
+    elseif (strpos($receptionist['address'], 'Allergy') !== false) $department_name = 'Allergy Specialist';
+    elseif (strpos($receptionist['address'], 'Hematology') !== false) $department_name = 'Hematologist';
+    elseif (strpos($receptionist['address'], 'Oncology') !== false) $department_name = 'Oncologist';
+    elseif (strpos($receptionist['address'], 'Geriatric') !== false) $department_name = 'Geriatrician';
+
+    if ($department_name) {
+        $category_query = "SELECT id, name FROM categories WHERE name = ? LIMIT 1";
+        $stmt = mysqli_prepare($conn, $category_query);
+        mysqli_stmt_bind_param($stmt, "s", $department_name);
+        mysqli_stmt_execute($stmt);
+        $category_result = mysqli_stmt_get_result($stmt);
+        $category = mysqli_fetch_assoc($category_result);
+        if ($category) {
+            $assigned_category_id = $category['id'];
+            $assigned_category_name = $category['name'];
+        }
+    }
+}
+
 // Handle Delete
 if (isset($_GET['delete']) && isset($_GET['id'])) {
-    $appointment_id = mysqli_real_escape_string($conn, $_GET['delete']);
+    $appointment_id = intval($_GET['delete']);
 
-    // Check if appointment is completed (cannot delete completed appointments)
-    $check_query = "SELECT status FROM appointments WHERE id = ?";
+    // Check if appointment is completed and belongs to receptionist department
+    $check_query = "SELECT status, category_id FROM appointments WHERE id = ?";
     $stmt = mysqli_prepare($conn, $check_query);
     mysqli_stmt_bind_param($stmt, "i", $appointment_id);
     mysqli_stmt_execute($stmt);
     $check_result = mysqli_stmt_get_result($stmt);
     $appointment_check = mysqli_fetch_assoc($check_result);
 
-    if ($appointment_check['status'] == 'completed') {
+    if (!$appointment_check || $appointment_check['category_id'] != $assigned_category_id) {
+        setFlashMessage("Unauthorized access!", "error");
+    } elseif ($appointment_check['status'] == 'completed') {
         setFlashMessage("Cannot delete completed appointments!", "error");
     } else {
         $delete_query = "DELETE FROM appointments WHERE id = ?";
@@ -35,12 +91,53 @@ if (isset($_GET['delete']) && isset($_GET['id'])) {
     exit();
 }
 
+// Handle Cancellation
+if (isset($_GET['cancel']) && isset($_GET['id'])) {
+    $appointment_id = intval($_GET['cancel']);
+
+    // Check if belongs to receptionist department
+    $check_query = "SELECT category_id FROM appointments WHERE id = ?";
+    $stmt = mysqli_prepare($conn, $check_query);
+    mysqli_stmt_bind_param($stmt, "i", $appointment_id);
+    mysqli_stmt_execute($stmt);
+    $check_result = mysqli_stmt_get_result($stmt);
+    $appointment_check = mysqli_fetch_assoc($check_result);
+
+    if (!$appointment_check || $appointment_check['category_id'] != $assigned_category_id) {
+        setFlashMessage("Unauthorized access!", "error");
+    } else {
+        mysqli_begin_transaction($conn);
+        try {
+            // Update appointment status to cancelled
+            $update_appointment = "UPDATE appointments SET status = 'cancelled' WHERE id = ?";
+            $stmt = mysqli_prepare($conn, $update_appointment);
+            mysqli_stmt_bind_param($stmt, "i", $appointment_id);
+            mysqli_stmt_execute($stmt);
+
+            // Update payment status if exists
+            $update_payment = "UPDATE payments SET status = 'refunded' WHERE appointment_id = ?";
+            $stmt = mysqli_prepare($conn, $update_payment);
+            mysqli_stmt_bind_param($stmt, "i", $appointment_id);
+            mysqli_stmt_execute($stmt);
+
+            mysqli_commit($conn);
+            setFlashMessage("Appointment cancelled and payment marked as refunded!", "success");
+        } catch (Exception $e) {
+            mysqli_rollback($conn);
+            setFlashMessage("Failed to cancel appointment!", "error");
+        }
+    }
+
+    header("Location: index.php");
+    exit();
+}
+
 // Get filter parameters
 $date_filter = isset($_GET['date']) ? mysqli_real_escape_string($conn, $_GET['date']) : '';
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
 
 // Build query
-$where_clauses = [];
+$where_clauses = ["a.category_id = $assigned_category_id"];
 if ($date_filter) {
     $where_clauses[] = "DATE(a.appointment_date) = '$date_filter'";
 }
@@ -48,43 +145,45 @@ if ($status_filter) {
     $where_clauses[] = "a.status = '$status_filter'";
 }
 
-$where_sql = !empty($where_clauses) ? "WHERE " . implode(" AND ", $where_clauses) : "";
+$where_sql = "WHERE " . implode(" AND ", $where_clauses);
 
 // Fetch appointments
 $appointments_query = "SELECT a.*, p.name as patient_name, p.age, p.gender, p.phone, 
-                              u.name as doctor_name, d.specialization,
-                              CASE 
-                                  WHEN r.id IS NOT NULL THEN 1 
-                                  ELSE 0 
-                              END as has_record
-                       FROM appointments a
-                       JOIN patients p ON a.patient_id = p.id
-                       JOIN doctors d ON a.doctor_id = d.id
-                       JOIN users u ON d.user_id = u.id
-                       LEFT JOIN records r ON r.patient_id = a.patient_id AND r.doctor_id = a.doctor_id AND DATE(r.visit_date) = DATE(a.appointment_date)
-                       $where_sql
-                       ORDER BY a.appointment_date DESC";
+                               u.name as doctor_name, d.specialization,
+                               pay.id as payment_id, pay.amount as paid_amount,
+                               CASE 
+                                   WHEN r.id IS NOT NULL THEN 1 
+                                   ELSE 0 
+                               END as has_record
+                        FROM appointments a
+                        JOIN patients p ON a.patient_id = p.id
+                        JOIN doctors d ON a.doctor_id = d.id
+                        JOIN users u ON d.user_id = u.id
+                        LEFT JOIN records r ON r.patient_id = a.patient_id AND r.doctor_id = a.doctor_id AND DATE(r.visit_date) = DATE(a.appointment_date)
+                        LEFT JOIN payments pay ON pay.appointment_id = a.id
+                        $where_sql
+                        ORDER BY a.appointment_date DESC";
 $appointments_result = mysqli_query($conn, $appointments_query);
 
-// Get statistics
+// Get statistics for this department only
 $today_date = date('Y-m-d');
-$total_query = "SELECT COUNT(*) as total FROM appointments";
+$total_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id";
 $total_result = mysqli_query($conn, $total_query);
 $total_appointments = mysqli_fetch_assoc($total_result)['total'];
 
-$today_query = "SELECT COUNT(*) as total FROM appointments WHERE DATE(appointment_date) = '$today_date'";
+$today_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id AND DATE(appointment_date) = '$today_date'";
 $today_result = mysqli_query($conn, $today_query);
 $today_appointments = mysqli_fetch_assoc($today_result)['total'];
 
-$pending_query = "SELECT COUNT(*) as total FROM appointments WHERE status = 'pending'";
+$pending_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id AND status = 'pending'";
 $pending_result = mysqli_query($conn, $pending_query);
 $pending_appointments = mysqli_fetch_assoc($pending_result)['total'];
 
-$completed_query = "SELECT COUNT(*) as total FROM appointments WHERE status = 'completed'";
+$completed_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id AND status = 'completed'";
 $completed_result = mysqli_query($conn, $completed_query);
 $completed_appointments = mysqli_fetch_assoc($completed_result)['total'];
 
-$cancelled_query = "SELECT COUNT(*) as total FROM appointments WHERE status = 'cancelled'";
+$cancelled_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id AND status = 'cancelled'";
 $cancelled_result = mysqli_query($conn, $cancelled_query);
 $cancelled_appointments = mysqli_fetch_assoc($cancelled_result)['total'];
 
@@ -98,8 +197,13 @@ include '../../includes/sidebar.php';
         <!-- Page Header -->
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Appointments Management</h1>
-                <p class="text-gray-600 mt-1">View and manage all patient appointments</p>
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <span class="text-blue-600"><?php echo htmlspecialchars($assigned_category_name); ?></span> Appointments
+                </h1>
+                <p class="text-gray-600 mt-1 text-sm italic">
+                    <i class="fas fa-building mr-1"></i>
+                    Displaying only <?php echo htmlspecialchars($assigned_category_name); ?> department data
+                </p>
             </div>
             <a href="create.php" class="bg-gradient-to-r from-blue-500 to-green-500 text-white px-5 py-2 rounded-lg hover:shadow-lg transition">
                 <i class="fas fa-plus mr-2"></i>Book New Appointment
@@ -209,7 +313,8 @@ include '../../includes/sidebar.php';
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Doctor</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Consultation Fee</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
@@ -218,7 +323,10 @@ include '../../includes/sidebar.php';
                         <?php if (mysqli_num_rows($appointments_result) > 0): ?>
                             <?php while ($appointment = mysqli_fetch_assoc($appointments_result)): ?>
                                 <tr class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-4 text-sm text-gray-800"><?php echo $appointment['id']; ?></td>
+                                    <td class="px-6 py-4 text-sm text-gray-800">
+                                        <div class="font-bold">#<?php echo $appointment['id']; ?></div>
+                                        <div class="text-[10px] text-blue-600 uppercase font-bold mt-1">Token: <?php echo str_pad($appointment['patient_number'], 2, '0', STR_PAD_LEFT); ?></div>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center">
                                             <div class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white text-sm font-bold">
@@ -231,12 +339,24 @@ include '../../includes/sidebar.php';
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <p class="text-sm font-medium text-gray-800">Dr. <?php echo htmlspecialchars($appointment['doctor_name']); ?></p>
+                                        <p class="text-sm font-medium text-gray-800">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $appointment['doctor_name']))); ?></p>
                                         <p class="text-xs text-gray-500"><?php echo htmlspecialchars($appointment['specialization']); ?></p>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">
-                                        <?php echo date('d M Y', strtotime($appointment['appointment_date'])); ?><br>
-                                        <span class="text-xs text-gray-400"><?php echo date('h:i A', strtotime($appointment['appointment_date'])); ?></span>
+                                    <td class="px-6 py-4">
+                                        <p class="text-sm font-semibold text-gray-800">Rs<?php echo number_format($appointment['consultation_fee'], 2); ?></p>
+                                        <p class="text-xs text-gray-500"><?php echo date('d M, h:i A', strtotime($appointment['appointment_date'])); ?></p>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <?php if ($appointment['payment_id']): ?>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-bold border border-green-200">
+                                                <i class="fas fa-check-circle mr-1"></i> Paid
+                                            </span>
+                                        <?php else: ?>
+                                            <a href="../payments/create.php?appointment_id=<?php echo $appointment['id']; ?>" 
+                                                class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-bold border border-red-200 hover:bg-red-200 transition">
+                                                <i class="fas fa-money-bill-wave mr-1"></i> Pay Fee
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4">
                                         <?php if ($appointment['status'] == 'completed'): ?>
@@ -264,21 +384,40 @@ include '../../includes/sidebar.php';
                                                 class="text-green-600 hover:text-green-800 transition" title="View Details">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <?php if ($appointment['status'] != 'completed'): ?>
+                                            <?php if ($appointment['payment_id'] && $appointment['status'] != 'completed' && $appointment['status'] != 'cancelled'): ?>
+                                                <a href="../payments/doctor_slip.php?id=<?php echo $appointment['payment_id']; ?>" 
+                                                    target="_blank" class="text-indigo-600 hover:text-indigo-800 transition" title="Print Doctor Slip">
+                                                    <i class="fas fa-user-md"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($appointment['status'] == 'pending'): ?>
+                                                <a href="javascript:void(0)"
+                                                    onclick="confirmCancel(<?php echo $appointment['id']; ?>, '<?php echo htmlspecialchars($appointment['patient_name']); ?>')"
+                                                    class="text-orange-500 hover:text-orange-700 transition" title="Cancel Appointment">
+                                                    <i class="fas fa-times-circle"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($appointment['status'] == 'pending'): ?>
                                                 <a href="edit.php?id=<?php echo $appointment['id']; ?>"
                                                     class="text-blue-600 hover:text-blue-800 transition" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <a href="javascript:void(0)"
-                                                    onclick="confirmDelete(<?php echo $appointment['id']; ?>, '<?php echo htmlspecialchars($appointment['patient_name']); ?>')"
-                                                    class="text-red-600 hover:text-red-800 transition" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </a>
+                                                <?php if (!$appointment['payment_id']): ?>
+                                                    <a href="javascript:void(0)"
+                                                        onclick="confirmDelete(<?php echo $appointment['id']; ?>, '<?php echo htmlspecialchars($appointment['patient_name']); ?>')"
+                                                        class="text-red-600 hover:text-red-800 transition" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="text-gray-400 cursor-not-allowed" title="Cannot delete paid appointment. Please cancel for refund processing.">
+                                                        <i class="fas fa-trash"></i>
+                                                    </span>
+                                                <?php endif; ?>
                                             <?php else: ?>
-                                                <span class="text-gray-400 cursor-not-allowed" title="Cannot edit completed appointment">
+                                                <span class="text-gray-400 cursor-not-allowed" title="Cannot edit/delete completed or cancelled appointment">
                                                     <i class="fas fa-edit"></i>
                                                 </span>
-                                                <span class="text-gray-400 cursor-not-allowed" title="Cannot delete completed appointment">
+                                                <span class="text-gray-400 cursor-not-allowed" title="Cannot delete completed or cancelled appointment">
                                                     <i class="fas fa-trash"></i>
                                                 </span>
                                             <?php endif; ?>
@@ -288,7 +427,7 @@ include '../../includes/sidebar.php';
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                                     <i class="fas fa-calendar-times text-4xl mb-3 opacity-50"></i>
                                     <p>No appointments found</p>
                                     <a href="create.php" class="text-blue-600 hover:underline mt-2 inline-block">Book your first appointment</a>
@@ -305,7 +444,13 @@ include '../../includes/sidebar.php';
 <script>
     function confirmDelete(id, name) {
         if (confirm(`Are you sure you want to delete appointment for "${name}"? This action cannot be undone.`)) {
-            window.location.href = `?delete=${id}`;
+            window.location.href = `?delete=${id}&id=${id}`;
+        }
+    }
+    
+    function confirmCancel(id, name) {
+        if (confirm(`Are you sure you want to cancel the appointment for "${name}"? If payment exists, it will be marked as REFUNDED.`)) {
+            window.location.href = `?cancel=${id}&id=${id}`;
         }
     }
 </script>

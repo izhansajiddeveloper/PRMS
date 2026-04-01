@@ -187,7 +187,7 @@ include '../includes/sidebar.php';
                 <div class="flex justify-between items-center">
                     <div>
                         <h1 class="text-3xl font-bold">Doctor Dashboard</h1>
-                        <p class="text-blue-100 mt-1">Welcome back, Dr. <?php echo htmlspecialchars($_SESSION['user_name']); ?>!</p>
+                        <p class="text-blue-100 mt-1">Welcome back,  <?php echo htmlspecialchars($_SESSION['user_name']); ?>!</p>
                         <p class="text-blue-50 text-sm mt-2">Specialization: <?php echo htmlspecialchars($doctor['specialization']); ?></p>
                     </div>
                     <div class="text-right">

@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $shift = mysqli_real_escape_string($conn, $_POST['shift']);
     $address = mysqli_real_escape_string($conn, $_POST['address']);
     $status = mysqli_real_escape_string($conn, $_POST['status']);
+    $category_id = intval($_POST['category_id']);
 
     // Check if email already exists for other users
     $check_query = "SELECT id FROM users WHERE email = ? AND id != ?";
@@ -68,9 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_stmt_execute($stmt);
 
             // Update staff table
-            $update_staff = "UPDATE staff SET position = ?, shift = ?, address = ? WHERE id = ?";
+            $update_staff = "UPDATE staff SET position = ?, shift = ?, address = ?, category_id = ? WHERE id = ?";
             $stmt = mysqli_prepare($conn, $update_staff);
-            mysqli_stmt_bind_param($stmt, "sssi", $position, $shift, $address, $staff_id);
+            mysqli_stmt_bind_param($stmt, "sssii", $position, $shift, $address, $category_id, $staff_id);
             mysqli_stmt_execute($stmt);
 
             // Commit transaction
@@ -174,6 +175,19 @@ include '../../includes/sidebar.php';
                                 <option value="Night" <?php echo $staff['shift'] == 'Night' ? 'selected' : ''; ?>>Night (8:00 PM - 8:00 AM)</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Assign Category *</label>
+                        <select name="category_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                            <option value="">Select Category</option>
+                            <?php
+                            $cat_query = "SELECT id, name FROM categories WHERE status = 'active' ORDER BY name";
+                            $cat_res = mysqli_query($conn, $cat_query);
+                            while ($cat = mysqli_fetch_assoc($cat_res)): ?>
+                                <option value="<?php echo $cat['id']; ?>" <?php echo $staff['category_id'] == $cat['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($cat['name']); ?></option>
+                            <?php endwhile; ?>
+                        </select>
                     </div>
 
                     <div class="mb-4">

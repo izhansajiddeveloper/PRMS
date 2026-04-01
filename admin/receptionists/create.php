@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = mysqli_real_escape_string($conn, $_POST['password']);
     $position = mysqli_real_escape_string($conn, $_POST['position']);
     $shift = mysqli_real_escape_string($conn, $_POST['shift']);
+    $category_id = intval($_POST['category_id']);
     $address = mysqli_real_escape_string($conn, $_POST['address']);
     $status = mysqli_real_escape_string($conn, $_POST['status']);
     $role_id = 3; // Receptionist role is fixed
@@ -42,9 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user_id = mysqli_insert_id($conn);
 
             // Insert into staff table
-            $insert_staff = "INSERT INTO staff (user_id, position, shift, address) VALUES (?, ?, ?, ?)";
+            $insert_staff = "INSERT INTO staff (user_id, category_id, position, shift, address) VALUES (?, ?, ?, ?, ?)";
             $stmt = mysqli_prepare($conn, $insert_staff);
-            mysqli_stmt_bind_param($stmt, "isss", $user_id, $position, $shift, $address);
+            mysqli_stmt_bind_param($stmt, "iisss", $user_id, $category_id, $position, $shift, $address);
             mysqli_stmt_execute($stmt);
 
             // Commit transaction
@@ -152,6 +153,20 @@ include '../../includes/sidebar.php';
                                 <option value="Night">Night (8:00 PM - 8:00 AM)</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Assign Category *</label>
+                        <select name="category_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                            <option value="">Select Category</option>
+                            <?php
+                            $cat_query = "SELECT id, name FROM categories WHERE status = 'active' ORDER BY name";
+                            $cat_res = mysqli_query($conn, $cat_query);
+                            while ($cat = mysqli_fetch_assoc($cat_res)): ?>
+                                <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Receptionist can only book appointments for doctors in this category.</p>
                     </div>
 
                     <div class="mb-4">
