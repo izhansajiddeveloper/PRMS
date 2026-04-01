@@ -56,6 +56,10 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
     $available_slots = [];
     $total_max_appointments = 0;
     
+    // Define current time for comparison (only used if date is today)
+    $is_today = ($date === date('Y-m-d'));
+    $now_timestamp = time();
+
     foreach ($all_shifts as $shift) {
         $total_max_appointments += $shift['max_appointments'];
         
@@ -66,13 +70,14 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
         while ($current < $end) {
             $time_slot = date('H:i:s', $current);
             
+            // Generate full timestamp for this specific slot for comparison
+            $slot_timestamp = strtotime($date . ' ' . $time_slot);
+            
             // Check if this slot is already booked
             if (!in_array($time_slot, $booked_slots)) {
-                $current_datetime_str = $date . ' ' . $time_slot;
-                $current_datetime = strtotime($current_datetime_str);
-                
-                // Only show future slots if the date is today
-                if ($current_datetime > time()) {
+                // If it's today, only show future slots
+                // If it's a future date, show all slots
+                if (!$is_today || $slot_timestamp > $now_timestamp) {
                     $available_slots[] = [
                         'time' => $time_slot,
                         'display' => date('h:i A', $current),
@@ -81,7 +86,7 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
                     ];
                 }
             }
-            $current += 1800; // 30 minute intervals
+            $current += 1800; // Force 30 minute intervals
         }
     }
 

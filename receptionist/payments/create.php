@@ -204,8 +204,8 @@ include '../../includes/sidebar.php';
                                 <div class="relative">
                                     <span class="absolute left-4 top-3.5 text-gray-400 font-bold">Rs</span>
                                     <input type="number" name="amount" id="amount" step="0.01" required
-                                        value="<?php echo $appointment['consultation_fee']; ?>"
-                                        class="w-full pl-10 pr-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition text-2xl font-bold text-gray-800">
+                                        value="<?php echo $appointment['consultation_fee']; ?>" readonly
+                                        class="w-full pl-10 pr-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none bg-gray-50 cursor-not-allowed transition text-2xl font-bold text-gray-800">
                                 </div>
                                 <p class="text-xs text-blue-600 mt-2 flex items-center">
                                     <i class="fas fa-info-circle mr-1"></i> 

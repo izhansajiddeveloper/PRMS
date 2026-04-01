@@ -222,28 +222,38 @@ include '../includes/sidebar.php';
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex space-x-2">
-                                            <a href="records/view.php?patient_id=<?php echo $patient['id']; ?>"
-                                                class="text-green-600 hover:text-green-800 transition" title="View Records">
-                                                <i class="fas fa-notes-medical"></i>
-                                            </a>
-                                            <?php if ($can_add_record): ?>
-                                                <a href="records/create.php?patient_id=<?php echo $patient['id']; ?>"
-                                                    class="text-blue-600 hover:text-blue-800 transition" title="Add New Record">
-                                                    <i class="fas fa-plus-circle"></i>
+                                            <?php if ($patient['appointment_status'] == 'pending'): ?>
+                                                <a href="records/view.php?patient_id=<?php echo $patient['id']; ?>"
+                                                    class="text-green-600 hover:text-green-800 transition" title="View Records">
+                                                    <i class="fas fa-notes-medical"></i>
                                                 </a>
+                                                <?php if ($can_add_record): ?>
+                                                    <a href="records/create.php?patient_id=<?php echo $patient['id']; ?>"
+                                                        class="text-blue-600 hover:text-blue-800 transition" title="Add New Record">
+                                                        <i class="fas fa-plus-circle"></i>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="text-gray-400 cursor-not-allowed" title="<?php echo $has_record ? 'Record already exists for this appointment' : 'Selection not available'; ?>">
+                                                        <i class="fas fa-plus-circle"></i>
+                                                    </span>
+                                                <?php endif; ?>
                                             <?php else: ?>
-                                                <span class="text-gray-400 cursor-not-allowed" title="<?php echo $has_record ? 'Record already exists for this appointment' : 'Appointment not pending'; ?>">
-                                                    <i class="fas fa-plus-circle"></i>
+                                                <!-- Actions disabled for completed/cancelled -->
+                                                <span class="text-gray-300 cursor-not-allowed" title="Action locked - Consultation <?php echo $patient['appointment_status']; ?>">
+                                                    <i class="fas fa-notes-medical opacity-50"></i>
+                                                </span>
+                                                <span class="text-gray-300 cursor-not-allowed" title="Action locked - Consultation <?php echo $patient['appointment_status']; ?>">
+                                                    <i class="fas fa-plus-circle opacity-50"></i>
                                                 </span>
                                             <?php endif; ?>
+                                            
                                             <a href="javascript:void(0)"
-                                                onclick="viewPatient(<?php echo $patient['id']; ?>, '<?php echo htmlspecialchars($patient['name']); ?>', <?php echo $patient['age']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo htmlspecialchars($patient['blood_group']); ?>', '<?php echo htmlspecialchars($patient['address']); ?>')"
+                                                onclick="viewPatient(<?php echo $patient['id']; ?>, '<?php echo htmlspecialchars($patient['name']); ?>', <?php echo $patient['age']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo htmlspecialchars($patient['blood_group']); ?>', '<?php echo htmlspecialchars($patient['address']); ?>', '<?php echo $patient['appointment_status']; ?>', <?php echo $can_add_record ? 'true' : 'false'; ?>)"
                                                 class="text-purple-600 hover:text-purple-800 transition" title="Quick View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                         </div>
-            </div>
-            </td>
+                                    </td>
             </tr>
         <?php endwhile; ?>
     <?php else: ?>
@@ -294,17 +304,26 @@ include '../includes/sidebar.php';
 </div>
 
 <script>
-    function viewPatient(id, name, age, gender, phone, bloodGroup, address) {
+    function viewPatient(id, name, age, gender, phone, bloodGroup, address, status, canAddRecord) {
         const modal = document.getElementById('patientModal');
         const modalContent = document.getElementById('modalContent');
         const viewRecordsBtn = document.getElementById('viewRecordsBtn');
         const addRecordBtn = document.getElementById('addRecordBtn');
 
+        let statusBadge = '';
+        if (status === 'completed') {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] rounded-full bg-green-100 text-green-800 ml-2">Completed</span>';
+        } else if (status === 'cancelled') {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] rounded-full bg-red-100 text-red-800 ml-2">Cancelled</span>';
+        } else {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] rounded-full bg-yellow-100 text-yellow-800 ml-2">Pending</span>';
+        }
+
         modalContent.innerHTML = `
         <div class="space-y-3">
             <div class="flex justify-between py-2 border-b">
                 <span class="font-semibold text-gray-600">Patient ID:</span>
-                <span class="text-gray-800">#${id}</span>
+                <span class="text-gray-800">#${id} ${statusBadge}</span>
             </div>
             <div class="flex justify-between py-2 border-b">
                 <span class="font-semibold text-gray-600">Name:</span>
@@ -335,6 +354,20 @@ include '../includes/sidebar.php';
 
         viewRecordsBtn.href = `records/view.php?patient_id=${id}`;
         addRecordBtn.href = `records/create.php?patient_id=${id}`;
+
+        // Hide action buttons if not pending
+        if (status !== 'pending') {
+            viewRecordsBtn.classList.add('hidden');
+            addRecordBtn.classList.add('hidden');
+        } else {
+            viewRecordsBtn.classList.remove('hidden');
+            if (canAddRecord) {
+                addRecordBtn.classList.remove('hidden');
+            } else {
+                addRecordBtn.classList.add('hidden');
+            }
+        }
+
         modal.classList.remove('hidden');
     }
 

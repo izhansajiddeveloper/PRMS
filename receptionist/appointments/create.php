@@ -25,99 +25,57 @@ if (!$receptionist) {
 }
 
 // Get the category assigned to this receptionist (based on position/address)
+// Assuming the position contains the category name or we can map it
+// For now, we'll get the category based on the receptionist's department from address
 $assigned_category_id = 0;
-$assigned_category_name = '';
-$assigned_category_icon = '';
-$assigned_category_description = '';
-
 if ($receptionist) {
     // Extract department from address (e.g., "Cardiology Department, 1st Floor")
     $department_name = '';
     if (strpos($receptionist['address'], 'Cardiology') !== false) {
         $department_name = 'Cardiologist';
-        $assigned_category_icon = 'fa-heartbeat';
-        $assigned_category_description = 'Heart and cardiovascular diseases specialist';
     } elseif (strpos($receptionist['address'], 'Neurology') !== false) {
         $department_name = 'Neurologist';
-        $assigned_category_icon = 'fa-brain';
-        $assigned_category_description = 'Brain, nerves and nervous system disorders specialist';
     } elseif (strpos($receptionist['address'], 'Ophthalmology') !== false) {
         $department_name = 'Ophthalmologist';
-        $assigned_category_icon = 'fa-eye';
-        $assigned_category_description = 'Eye diseases and vision problems specialist';
     } elseif (strpos($receptionist['address'], 'ENT') !== false) {
         $department_name = 'ENT Specialist';
-        $assigned_category_icon = 'fa-ear-deaf';
-        $assigned_category_description = 'Ear, nose and throat diseases specialist';
     } elseif (strpos($receptionist['address'], 'Dermatology') !== false) {
         $department_name = 'Dermatologist';
-        $assigned_category_icon = 'fa-hand-sparkles';
-        $assigned_category_description = 'Skin, hair and nail disorders specialist';
     } elseif (strpos($receptionist['address'], 'Pulmonology') !== false) {
         $department_name = 'Pulmonologist';
-        $assigned_category_icon = 'fa-lungs';
-        $assigned_category_description = 'Lung and respiratory diseases specialist';
     } elseif (strpos($receptionist['address'], 'Gastroenterology') !== false) {
         $department_name = 'Gastroenterologist';
-        $assigned_category_icon = 'fa-stomach';
-        $assigned_category_description = 'Digestive system disorders specialist';
     } elseif (strpos($receptionist['address'], 'Orthopedic') !== false) {
         $department_name = 'Orthopedic Surgeon';
-        $assigned_category_icon = 'fa-bone';
-        $assigned_category_description = 'Bone, joint and muscle disorders specialist';
     } elseif (strpos($receptionist['address'], 'Endocrinology') !== false) {
         $department_name = 'Endocrinologist';
-        $assigned_category_icon = 'fa-droplet';
-        $assigned_category_description = 'Hormone and metabolic disorders specialist';
     } elseif (strpos($receptionist['address'], 'Infectious Disease') !== false) {
         $department_name = 'Infectious Disease Specialist';
-        $assigned_category_icon = 'fa-virus';
-        $assigned_category_description = 'Fever and infectious diseases specialist';
     } elseif (strpos($receptionist['address'], 'Pediatric') !== false) {
         $department_name = 'Pediatrician';
-        $assigned_category_icon = 'fa-child';
-        $assigned_category_description = 'Child health and diseases specialist';
     } elseif (strpos($receptionist['address'], 'Psychiatry') !== false) {
         $department_name = 'Psychiatrist';
-        $assigned_category_icon = 'fa-brain';
-        $assigned_category_description = 'Mental health disorders specialist';
     } elseif (strpos($receptionist['address'], 'Nephrology') !== false) {
         $department_name = 'Nephrologist';
-        $assigned_category_icon = 'fa-filter';
-        $assigned_category_description = 'Kidney diseases specialist';
     } elseif (strpos($receptionist['address'], 'Urology') !== false) {
         $department_name = 'Urologist';
-        $assigned_category_icon = 'fa-bladder';
-        $assigned_category_description = 'Urinary tract and male reproductive system specialist';
     } elseif (strpos($receptionist['address'], 'Gynecology') !== false) {
         $department_name = 'Gynecologist';
-        $assigned_category_icon = 'fa-female';
-        $assigned_category_description = 'Women reproductive health specialist';
     } elseif (strpos($receptionist['address'], 'Rheumatology') !== false) {
         $department_name = 'Rheumatologist';
-        $assigned_category_icon = 'fa-hand-holding-heart';
-        $assigned_category_description = 'Joint and autoimmune diseases specialist';
     } elseif (strpos($receptionist['address'], 'Allergy') !== false) {
         $department_name = 'Allergy Specialist';
-        $assigned_category_icon = 'fa-allergies';
-        $assigned_category_description = 'Allergies and immune system disorders specialist';
     } elseif (strpos($receptionist['address'], 'Hematology') !== false) {
         $department_name = 'Hematologist';
-        $assigned_category_icon = 'fa-tint';
-        $assigned_category_description = 'Blood disorders specialist';
     } elseif (strpos($receptionist['address'], 'Oncology') !== false) {
         $department_name = 'Oncologist';
-        $assigned_category_icon = 'fa-ribbon';
-        $assigned_category_description = 'Cancer and tumors specialist';
     } elseif (strpos($receptionist['address'], 'Geriatric') !== false) {
         $department_name = 'Geriatrician';
-        $assigned_category_icon = 'fa-user-clock';
-        $assigned_category_description = 'Elderly health care specialist';
     }
 
-    // Get category ID and name from category name
+    // Get category ID from category name
     if ($department_name) {
-        $category_query = "SELECT id, name, description, icon FROM categories WHERE name = ? LIMIT 1";
+        $category_query = "SELECT id FROM categories WHERE name = ? LIMIT 1";
         $stmt = mysqli_prepare($conn, $category_query);
         mysqli_stmt_bind_param($stmt, "s", $department_name);
         mysqli_stmt_execute($stmt);
@@ -125,9 +83,6 @@ if ($receptionist) {
         $category = mysqli_fetch_assoc($category_result);
         if ($category) {
             $assigned_category_id = $category['id'];
-            $assigned_category_name = $category['name'];
-            $assigned_category_icon = $category['icon'];
-            $assigned_category_description = $category['description'];
         }
     }
 }
@@ -154,11 +109,9 @@ $patients_result = mysqli_query($conn, $patients_query);
 // Get doctors for the assigned category only
 if ($assigned_category_id > 0) {
     $doctors_query = "SELECT d.id, d.user_id, d.specialization, d.consultation_fee, d.experience_years, d.qualification,
-                             u.name as doctor_name, u.email, u.phone,
-                             c.name as category_name, c.icon as category_icon
+                             u.name as doctor_name, u.email, u.phone
                       FROM doctors d
                       JOIN users u ON d.user_id = u.id
-                      JOIN categories c ON d.category_id = c.id
                       WHERE d.category_id = ? 
                       AND d.status = 'active' 
                       AND u.status = 'active'
@@ -167,6 +120,18 @@ if ($assigned_category_id > 0) {
     mysqli_stmt_bind_param($stmt, "i", $assigned_category_id);
     mysqli_stmt_execute($stmt);
     $doctors_result = mysqli_stmt_get_result($stmt);
+}
+
+// Get category name for display
+$category_name = '';
+if ($assigned_category_id > 0) {
+    $cat_query = "SELECT name FROM categories WHERE id = ?";
+    $stmt = mysqli_prepare($conn, $cat_query);
+    mysqli_stmt_bind_param($stmt, "i", $assigned_category_id);
+    mysqli_stmt_execute($stmt);
+    $cat_result = mysqli_stmt_get_result($stmt);
+    $cat = mysqli_fetch_assoc($cat_result);
+    $category_name = $cat['name'];
 }
 
 // Handle doctor selection
@@ -187,10 +152,7 @@ if ($selected_doctor_id > 0) {
     $doctor_schedule = mysqli_stmt_get_result($stmt);
 
     // Get doctor fee and details
-    $fee_query = "SELECT d.consultation_fee, d.specialization, c.name as category_name
-                  FROM doctors d
-                  JOIN categories c ON d.category_id = c.id
-                  WHERE d.id = ?";
+    $fee_query = "SELECT consultation_fee, specialization FROM doctors WHERE id = ?";
     $stmt = mysqli_prepare($conn, $fee_query);
     mysqli_stmt_bind_param($stmt, "i", $selected_doctor_id);
     mysqli_stmt_execute($stmt);
@@ -211,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_appointment'])) {
 
     // Get the day of week for the selected date
     $date_obj = new DateTime($appointment_date);
-    $day_of_week = $date_obj->format('l');
+    $day_of_week = $date_obj->format('l'); // Monday, Tuesday, etc.
 
     // Get the schedule for this doctor on this day
     $schedule_check_query = "SELECT id, max_appointments FROM doctor_schedules 
@@ -236,67 +198,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_appointment'])) {
         if (mysqli_stmt_num_rows($stmt) > 0) {
             $error = "This time slot is already booked! Please select another time.";
         } else {
-                    // Check how many appointments this doctor has on this day
-                    $day_start = $appointment_date . ' 00:00:00';
-                    $day_end = $appointment_date . ' 23:59:59';
-                    $count_query = "SELECT COUNT(*) as total FROM appointments 
-                                    WHERE doctor_id = ? 
-                                    AND appointment_date BETWEEN ? AND ? 
-                                    AND status != 'cancelled'";
-                    $stmt = mysqli_prepare($conn, $count_query);
-                    mysqli_stmt_bind_param($stmt, "iss", $doctor_id, $day_start, $day_end);
-                    mysqli_stmt_execute($stmt);
-                    $count_result = mysqli_stmt_get_result($stmt);
-                    $count_data = mysqli_fetch_assoc($count_result);
-                    $appointments_today = $count_data['total'];
+            // Check how many appointments this doctor has on this day
+            $day_start = $appointment_date . ' 00:00:00';
+            $day_end = $appointment_date . ' 23:59:59';
+            $count_query = "SELECT COUNT(*) as total FROM appointments 
+                            WHERE doctor_id = ? 
+                            AND appointment_date BETWEEN ? AND ? 
+                            AND status != 'cancelled'";
+            $stmt = mysqli_prepare($conn, $count_query);
+            mysqli_stmt_bind_param($stmt, "iss", $doctor_id, $day_start, $day_end);
+            mysqli_stmt_execute($stmt);
+            $count_result = mysqli_stmt_get_result($stmt);
+            $count_data = mysqli_fetch_assoc($count_result);
+            $appointments_today = $count_data['total'];
 
-                    // Check if max appointments reached
-                    if ($appointments_today >= $schedule['max_appointments']) {
-                        $error = "Doctor has reached maximum appointments for this day ($appointments_today/{$schedule['max_appointments']}). Please select another day.";
-                    } else {
-                        // Calculate the next available patient number (smallest missing integer)
-                        $p_num_query = "SELECT patient_number FROM appointments 
-                                        WHERE doctor_id = ? AND DATE(appointment_date) = ? 
-                                        AND status != 'cancelled' 
-                                        ORDER BY patient_number ASC";
-                        $p_num_stmt = mysqli_prepare($conn, $p_num_query);
-                        mysqli_stmt_bind_param($p_num_stmt, "is", $doctor_id, $appointment_date);
-                        mysqli_stmt_execute($p_num_stmt);
-                        $p_num_result = mysqli_stmt_get_result($p_num_stmt);
-                        
-                        $existing_numbers = [];
-                        while ($p_row = mysqli_fetch_assoc($p_num_result)) {
-                            if($p_row['patient_number'] > 0) $existing_numbers[] = (int)$p_row['patient_number'];
-                        }
-                        
-                        $next_patient_number = 1;
-                        while (in_array($next_patient_number, $existing_numbers)) {
-                            $next_patient_number++;
-                        }
+            // Check if max appointments reached
+            if ($appointments_today >= $schedule['max_appointments']) {
+                $error = "Doctor has reached maximum appointments for this day ($appointments_today/{$schedule['max_appointments']}). Please select another day.";
+            } else {
+                // Check if patient already has a pending appointment with this doctor
+                $check_query = "SELECT id FROM appointments 
+                                WHERE patient_id = ? AND doctor_id = ? 
+                                AND status = 'pending' 
+                                AND appointment_date > NOW()";
+                $stmt = mysqli_prepare($conn, $check_query);
+                mysqli_stmt_bind_param($stmt, "ii", $patient_id, $doctor_id);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_store_result($stmt);
 
-                        // Check if patient already has a pending appointment with this doctor
-                        $check_query = "SELECT id FROM appointments 
-                                        WHERE patient_id = ? AND doctor_id = ? 
-                                        AND status = 'pending' 
-                                        AND appointment_date > NOW()";
-                        $stmt = mysqli_prepare($conn, $check_query);
-                        mysqli_stmt_bind_param($stmt, "ii", $patient_id, $doctor_id);
-                        mysqli_stmt_execute($stmt);
-                        mysqli_stmt_store_result($stmt);
-
-                        if (mysqli_stmt_num_rows($stmt) > 0) {
-                            $error = "This patient already has a pending appointment with this doctor! Please wait for it to be completed or cancelled.";
-                        } else {
-                            // Insert appointment with patient_number
-                            $insert_query = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, status, symptoms, category_id, consultation_fee, shift_type, patient_number) 
-                                             VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?)";
-                            $stmt = mysqli_prepare($conn, $insert_query);
-                            mysqli_stmt_bind_param($stmt, "iisssdsi", $patient_id, $doctor_id, $full_datetime, $symptoms, $assigned_category_id, $consultation_fee, $shift_type, $next_patient_number);
+                if (mysqli_stmt_num_rows($stmt) > 0) {
+                    $error = "This patient already has a pending appointment with this doctor! Please wait for it to be completed or cancelled.";
+                } else {
+                    // Insert appointment
+                    $insert_query = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, status, symptoms, category_id, consultation_fee, shift_type, created_at) 
+                                     VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, NOW())";
+                    $stmt = mysqli_prepare($conn, $insert_query);
+                    mysqli_stmt_bind_param($stmt, "iisssds", $patient_id, $doctor_id, $full_datetime, $symptoms, $assigned_category_id, $consultation_fee, $shift_type);
 
                     if (mysqli_stmt_execute($stmt)) {
                         $appointment_id = mysqli_insert_id($conn);
                         $success = "Appointment booked successfully!";
-                        header("Location: view.php?id=" . $appointment_id . "&success=1");
+                        // Redirect to Payment Collection directly
+                        header("Location: ../payments/create.php?appointment_id=" . $appointment_id . "&success=1");
                         exit();
                     } else {
                         $error = "Failed to book appointment: " . mysqli_error($conn);
@@ -318,7 +261,7 @@ include '../../includes/sidebar.php';
             <h1 class="text-2xl font-bold text-gray-800">Book New Appointment</h1>
             <p class="text-gray-600 mt-1">
                 <i class="fas fa-building mr-1 text-blue-500"></i>
-                Department: <span class="font-semibold text-blue-600"><?php echo htmlspecialchars($assigned_category_name); ?></span>
+                Department: <span class="font-semibold"><?php echo htmlspecialchars($category_name); ?></span>
                 | <i class="fas fa-user mr-1 text-green-500"></i>
                 Receptionist: <span class="font-semibold"><?php echo htmlspecialchars($receptionist['receptionist_name']); ?></span>
             </p>
@@ -339,32 +282,13 @@ include '../../includes/sidebar.php';
         <?php else: ?>
 
             <div class="max-w-4xl mx-auto">
-                <!-- Step 1: Category Information & Patient Selection -->
+                <!-- Step 1: Patient Selection -->
                 <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                     <div class="flex items-center mb-4">
                         <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3">1</div>
                         <h2 class="text-lg font-semibold text-gray-800">Select Patient</h2>
                     </div>
-
-                    <!-- Category Info Card -->
-                    <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
-                        <div class="flex items-center">
-                            <div class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white text-xl mr-4">
-                                <i class="fas <?php echo $assigned_category_icon ?: 'fa-hospital-user'; ?>"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="text-lg font-bold text-gray-800"><?php echo htmlspecialchars($assigned_category_name); ?> Department</h3>
-                                <p class="text-sm text-gray-600"><?php echo htmlspecialchars($assigned_category_description); ?></p>
-                                <p class="text-xs text-gray-500 mt-1">
-                                    <i class="fas fa-info-circle mr-1"></i>
-                                    You are booking appointments for this department
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
                     <form method="GET" action="" id="patientForm">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Patient *</label>
                         <select name="patient_id" id="patient_id" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                             onchange="this.form.submit()">
@@ -391,44 +315,24 @@ include '../../includes/sidebar.php';
                     <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                         <div class="flex items-center mb-4">
                             <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center mr-3">2</div>
-                            <h2 class="text-lg font-semibold text-gray-800">Select Doctor - <?php echo htmlspecialchars($assigned_category_name); ?></h2>
-                            <span class="ml-3 text-sm text-gray-500">(Doctors in this department)</span>
+                            <h2 class="text-lg font-semibold text-gray-800">Select Doctor - <?php echo htmlspecialchars($category_name); ?></h2>
+                            <span class="ml-3 text-sm text-gray-500">(Department assigned to you)</span>
                         </div>
 
                         <?php if ($doctors_result && mysqli_num_rows($doctors_result) > 0): ?>
                             <form method="POST" action="" id="doctorForm">
                                 <input type="hidden" name="patient_id" value="<?php echo $selected_patient_id; ?>">
                                 <div class="grid grid-cols-1 gap-4">
-                                    <?php while ($doctor = mysqli_fetch_assoc($doctors_result)):
-                                        // Clean doctor name - remove any existing "Dr." to avoid duplication
-                                        $clean_doctor_name = trim(str_replace('Dr.', '', $doctor['doctor_name']));
-                                    ?>
+                                    <?php while ($doctor = mysqli_fetch_assoc($doctors_result)): ?>
                                         <label class="border rounded-lg p-4 hover:shadow-md transition cursor-pointer flex justify-between items-start <?php echo ($selected_doctor_id == $doctor['id']) ? 'border-green-500 bg-green-50' : ''; ?>">
                                             <div class="flex-1">
                                                 <input type="radio" name="doctor_id" value="<?php echo $doctor['id']; ?>"
                                                     class="hidden doctor-radio" data-fee="<?php echo $doctor['consultation_fee']; ?>">
                                                 <div>
-                                                    <h3 class="font-semibold text-gray-800 text-lg">Dr. <?php echo htmlspecialchars($clean_doctor_name); ?></h3>
-                                                    <div class="flex flex-wrap gap-3 mt-1">
-                                                        <p class="text-sm text-gray-600">
-                                                            <i class="fas fa-stethoscope mr-1 text-blue-500"></i>
-                                                            <?php echo htmlspecialchars($doctor['specialization']); ?>
-                                                        </p>
-                                                        <p class="text-sm text-gray-500">
-                                                            <i class="fas fa-tag mr-1 text-green-500"></i>
-                                                            <?php echo htmlspecialchars($doctor['category_name']); ?>
-                                                        </p>
-                                                    </div>
-                                                    <div class="flex flex-wrap gap-3 mt-1">
-                                                        <p class="text-sm text-gray-500">
-                                                            <i class="fas fa-calendar-alt mr-1 text-orange-500"></i>
-                                                            Experience: <?php echo $doctor['experience_years']; ?> years
-                                                        </p>
-                                                        <p class="text-sm text-gray-500">
-                                                            <i class="fas fa-graduation-cap mr-1 text-purple-500"></i>
-                                                            <?php echo htmlspecialchars($doctor['qualification']); ?>
-                                                        </p>
-                                                    </div>
+                                                    <h3 class="font-semibold text-gray-800">Dr. <?php echo htmlspecialchars($doctor['doctor_name']); ?></h3>
+                                                    <p class="text-sm text-gray-600"><?php echo htmlspecialchars($doctor['specialization']); ?></p>
+                                                    <p class="text-sm text-gray-500">Experience: <?php echo $doctor['experience_years']; ?> years</p>
+                                                    <p class="text-sm text-gray-500">Qualification: <?php echo htmlspecialchars($doctor['qualification']); ?></p>
                                                 </div>
                                             </div>
                                             <div class="text-right">
@@ -448,7 +352,7 @@ include '../../includes/sidebar.php';
                             <div class="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-4">
                                 <p class="text-yellow-800">
                                     <i class="fas fa-info-circle mr-2"></i>
-                                    No doctors available in <?php echo htmlspecialchars($assigned_category_name); ?> department at the moment.
+                                    No doctors available in <?php echo htmlspecialchars($category_name); ?> department at the moment.
                                 </p>
                             </div>
                         <?php endif; ?>
@@ -468,7 +372,8 @@ include '../../includes/sidebar.php';
                             <input type="hidden" name="patient_id" value="<?php echo $selected_patient_id; ?>">
                             <input type="hidden" name="doctor_id" value="<?php echo $selected_doctor_id; ?>">
                             <input type="hidden" name="consultation_fee" id="consultation_fee" value="<?php echo isset($doctor_details) ? $doctor_details['consultation_fee'] : 0; ?>">
-                            
+                            <input type="hidden" name="shift_type" id="shift_type" value="">
+
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Select Date *</label>
                                 <select name="appointment_date" id="appointment_date" required
@@ -477,24 +382,17 @@ include '../../includes/sidebar.php';
                                 </select>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Set Appointment Time *</label>
-                                    <div class="relative">
-                                        <input type="time" name="appointment_time" id="appointment_time" required
-                                            class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-blue-500 transition font-bold text-gray-800 bg-gray-50">
-                                        <div class="absolute right-4 top-3.5 text-gray-400">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Shift *</label>
-                                    <select name="shift_type" id="shift_type" required
-                                        class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-blue-500 transition font-bold text-gray-800 bg-gray-50">
-                                        <option value="Morning">Morning Shift</option>
-                                        <option value="Evening">Evening Shift</option>
-                                    </select>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Select Time Slot *</label>
+                                <select name="appointment_time" id="appointment_time" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-gray-50 cursor-not-allowed" disabled>
+                                    <option value="">-- First select a date --</option>
+                                </select>
+                            </div>
+
+                            <div id="availability-message" class="mb-4 hidden">
+                                <div class="bg-blue-50 border-l-4 border-blue-500 p-3">
+                                    <p class="text-sm text-blue-700"></p>
                                 </div>
                             </div>
 
@@ -516,7 +414,7 @@ include '../../includes/sidebar.php';
                                 </div>
                                 <p class="text-xs text-gray-500 mt-2">
                                     <i class="fas fa-info-circle mr-1"></i>
-                                    Enter appointment time manually as per doctor's availability.
+                                    Time slots are in 30-minute intervals. Each slot can only be booked once.
                                 </p>
                             </div>
 
@@ -568,6 +466,9 @@ include '../../includes/sidebar.php';
                             echo json_encode($schedule_array);
                             ?>;
 
+    // Store booked appointments for checking (we'll fetch via AJAX)
+    const bookedSlots = {};
+
     // Handle doctor radio button selection and auto-submit
     document.querySelectorAll('.doctor-radio').forEach(radio => {
         radio.addEventListener('change', function() {
@@ -590,7 +491,7 @@ include '../../includes/sidebar.php';
 
             dateSelect.innerHTML = '<option value="">-- Select Date --</option>';
 
-            for (let i = 0; i < 60; i++) {
+            for (let i = 0; i < 7; i++) {
                 const futureDate = new Date();
                 futureDate.setDate(today.getDate() + i);
                 const dayName = futureDate.toLocaleDateString('en-US', {
@@ -616,4 +517,70 @@ include '../../includes/sidebar.php';
             }
         }
     }
+
+    // Populate time slots when date is selected
+    const appointmentDateSelect = document.getElementById('appointment_date');
+    const timeSlotSelect = document.getElementById('appointment_time');
+    const availabilityMsg = document.getElementById('availability-message');
+    const doctorId = <?php echo $selected_doctor_id; ?>;
+
+    if (appointmentDateSelect) {
+        appointmentDateSelect.addEventListener('change', async function() {
+            const selectedDate = this.value;
+            
+            // Reset fields
+            timeSlotSelect.innerHTML = '<option value="">-- Loading Slots... --</option>';
+            timeSlotSelect.disabled = true;
+            timeSlotSelect.classList.add('bg-gray-50', 'cursor-not-allowed');
+            availabilityMsg.classList.add('hidden');
+            document.getElementById('shift_type').value = '';
+
+            if (!selectedDate) {
+                timeSlotSelect.innerHTML = '<option value="">-- First select a date --</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`check_availability.php?doctor_id=${doctorId}&date=${selectedDate}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    timeSlotSelect.innerHTML = '<option value="">-- Select Time --</option>';
+                    
+                    if (data.available_slots.length === 0) {
+                        timeSlotSelect.innerHTML = '<option value="">-- No slots available --</option>';
+                        availabilityMsg.querySelector('p').textContent = data.message || "No available slots for this date.";
+                        availabilityMsg.classList.remove('hidden');
+                    } else {
+                        data.available_slots.forEach(slot => {
+                            const option = document.createElement('option');
+                            option.value = slot.time;
+                            option.textContent = `${slot.display} (${slot.shift})`;
+                            option.dataset.shift = slot.shift;
+                            timeSlotSelect.appendChild(option);
+                        });
+                        
+                        timeSlotSelect.disabled = false;
+                        timeSlotSelect.classList.remove('bg-gray-50', 'cursor-not-allowed');
+                        timeSlotSelect.classList.add('bg-white');
+                    }
+                } else {
+                    timeSlotSelect.innerHTML = '<option value="">-- Error --</option>';
+                    alert(data.message || "Error fetching availability");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                timeSlotSelect.innerHTML = '<option value="">-- Error --</option>';
+            }
+        });
+
+        // Set shift_type when time is selected
+        timeSlotSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.dataset.shift) {
+                document.getElementById('shift_type').value = selectedOption.dataset.shift;
+            }
+        });
+    }
 </script>
+

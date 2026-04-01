@@ -594,11 +594,25 @@ $user_avatar = strtoupper(substr($user_name, 0, 1));
 
             <!-- Appointments -->
             <li class="nav-item">
-                <a href="<?= BASE_URL ?>doctor/appointments.php" class="nav-link-custom">
+                <a href="<?= BASE_URL ?>doctor/appointments.php" class="nav-link-custom <?= ($current_page == 'appointments.php') ? 'active' : '' ?>">
                     <i class="fas fa-calendar-check"></i>
                     <span>My Appointments</span>
                 </a>
             </li>
+
+            <div class="nav-group-title">
+                <i class="fas fa-wallet"></i>
+                <span>FINANCIALS</span>
+            </div>
+
+            <!-- Payments -->
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>doctor/payments/index.php" class="nav-link-custom <?= (strpos($current_full_url, '/doctor/payments/') !== false) ? 'active' : '' ?>">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>My Earnings</span>
+                </a>
+            </li>
+
             <li class="nav-item">
                 <a href="<?= BASE_URL ?>doctor/profile.php" class="nav-link-custom <?= ($current_page == 'profile.php') ? 'active' : '' ?>">
                     <i class="fas fa-user-circle"></i>
