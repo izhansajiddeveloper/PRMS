@@ -33,23 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $status = mysqli_real_escape_string($conn, $_POST['status']);
     $duration = $_POST['duration'];
 
-    $now = new DateTime();
-    $start_at = $now->format('Y-m-d H:i:s');
-    
-    // Calculate expiry time (Mandatory)
+    // Determine interval based on duration
+    $interval = "1 DAY"; // Default
     switch($duration) {
-        case '1h': $now->modify('+1 hour'); break;
-        case '2h': $now->modify('+2 hours'); break;
-        case '1d': $now->modify('+1 day'); break;
-        case '2d': $now->modify('+2 days'); break;
-        case '5d': $now->modify('+5 days'); break;
-        default: $now->modify('+1 day'); break;
+        case '1h': $interval = "1 HOUR"; break;
+        case '2h': $interval = "2 HOUR"; break;
+        case '1d': $interval = "1 DAY"; break;
+        case '2d': $interval = "2 DAY"; break;
+        case '5d': $interval = "5 DAY"; break;
     }
-    $expiry_at = $now->format('Y-m-d H:i:s');
 
-    $update_query = "UPDATE announcements SET title = ?, message = ?, target_audience = ?, status = ?, start_at = ?, expiry_at = ? WHERE id = ?";
+    $update_query = "UPDATE announcements SET title = ?, message = ?, target_audience = ?, status = ?, start_at = NOW(), expiry_at = DATE_ADD(NOW(), INTERVAL $interval) WHERE id = ?";
     $stmt = mysqli_prepare($conn, $update_query);
-    mysqli_stmt_bind_param($stmt, "ssssssi", $title, $message, $target_audience, $status, $start_at, $expiry_at, $id);
+    mysqli_stmt_bind_param($stmt, "ssssi", $title, $message, $target_audience, $status, $id);
     
     if (mysqli_stmt_execute($stmt)) {
         setFlashMessage("Announcement updated successfully!", "success");

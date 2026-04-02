@@ -29,6 +29,27 @@ $is_payments_module = (strpos($current_full_url, '/admin/payments/') !== false);
 $user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'Guest';
 $user_email = isset($_SESSION['user_email']) ? $_SESSION['user_email'] : '';
 $user_avatar = strtoupper(substr($user_name, 0, 1));
+
+// Fetch global announcements for notifications
+$notif_audience = 'all';
+if ($role_name == 'doctor') $notif_audience = 'doctors';
+elseif ($role_name == 'receptionist') $notif_audience = 'staff';
+
+$notif_query = "SELECT * FROM announcements 
+                WHERE status = 'active' 
+                AND (target_audience = 'all' OR target_audience = ?) 
+                AND (start_at <= NOW())
+                AND (expiry_at IS NULL OR expiry_at > NOW())
+                ORDER BY start_at DESC";
+$notif_stmt = mysqli_prepare($conn, $notif_query);
+mysqli_stmt_bind_param($notif_stmt, "s", $notif_audience);
+mysqli_stmt_execute($notif_stmt);
+$notif_result = mysqli_stmt_get_result($notif_stmt);
+$notif_count = mysqli_num_rows($notif_result);
+$all_notifications = [];
+while($n = mysqli_fetch_assoc($notif_result)) {
+    $all_notifications[] = $n;
+}
 ?>
 
 <style>
@@ -386,6 +407,14 @@ $user_avatar = strtoupper(substr($user_name, 0, 1));
             transform: translateX(0);
         }
     }
+
+    @keyframes fade-in-right {
+        from { opacity: 0; transform: translateX(30px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    .animate-fade-in-right {
+        animation: fade-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 </style>
 
 <aside class="modern-sidebar" id="sidebar">
@@ -711,105 +740,205 @@ $user_avatar = strtoupper(substr($user_name, 0, 1));
 
 <!-- Pure JavaScript for Collapse (No Bootstrap JS needed) -->
 <script>
-    // Wait for the DOM to be fully loaded
     document.addEventListener('DOMContentLoaded', function() {
-        // Get all collapse toggles
+        // Toggle Collapse Items
         var toggles = document.querySelectorAll('[data-toggle="collapse"]');
-
-        // Function to toggle collapse
-        function toggleCollapse(toggle, target) {
-            // Toggle the show class
-            if (target.classList.contains('show')) {
-                target.classList.remove('show');
-                toggle.setAttribute('aria-expanded', 'false');
-            } else {
-                target.classList.add('show');
-                toggle.setAttribute('aria-expanded', 'true');
-            }
-        }
-
-        // Add click event to each toggle
         toggles.forEach(function(toggle) {
             toggle.addEventListener('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
-
-                // Get target element
                 var targetId = this.getAttribute('href');
-                if (!targetId) return;
-
                 var target = document.querySelector(targetId);
-                if (!target) return;
-
-                // Toggle this collapse
-                toggleCollapse(this, target);
-
-                // Optional: Close other open collapses in the same group? 
-                // (comment out if you want multiple open at once)
-                var parentNav = this.closest('.nav-list');
-                if (parentNav) {
-                    var allCollapses = parentNav.querySelectorAll('.collapse.show');
-                    allCollapses.forEach(function(collapse) {
-                        if (collapse !== target) {
-                            collapse.classList.remove('show');
-                            var relatedToggle = document.querySelector('[data-toggle="collapse"][href="#' + collapse.id + '"]');
-                            if (relatedToggle) {
-                                relatedToggle.setAttribute('aria-expanded', 'false');
-                            }
-                        }
-                    });
+                if (target.classList.contains('show')) {
+                    target.classList.remove('show');
+                    this.setAttribute('aria-expanded', 'false');
+                } else {
+                    target.classList.add('show');
+                    this.setAttribute('aria-expanded', 'true');
                 }
             });
         });
 
-        // Active link highlighting and auto-expand parent collapses
+        // Highlight Active Link
         var currentUrl = window.location.pathname;
-        var baseUrl = '<?php echo BASE_URL; ?>';
-
-        // Find all sidebar links
-        var allLinks = document.querySelectorAll('.submenu-item a, .nav-link-custom:not([data-toggle="collapse"])');
-
-        allLinks.forEach(function(link) {
-            var href = link.getAttribute('href');
-            if (href && href !== '#' && href !== 'javascript:void(0)') {
-                // Compare current URL with link href
-                var linkPath = href.replace(baseUrl, '');
-                if (currentUrl.includes(linkPath) || currentUrl === linkPath) {
-                    link.classList.add('active');
-
-                    // Expand parent collapse if this link is inside one
-                    var parentCollapse = link.closest('.collapse');
-                    if (parentCollapse && !parentCollapse.classList.contains('show')) {
-                        parentCollapse.classList.add('show');
-                        var parentToggle = document.querySelector('[data-toggle="collapse"][href="#' + parentCollapse.id + '"]');
-                        if (parentToggle) {
-                            parentToggle.setAttribute('aria-expanded', 'true');
-                        }
-                    }
-
-                    // Also highlight the parent toggle if it exists
-                    var parentToggleItem = link.closest('.nav-item');
-                    if (parentToggleItem) {
-                        var parentToggleLink = parentToggleItem.querySelector('[data-toggle="collapse"]');
-                        if (parentToggleLink && !parentToggleLink.classList.contains('active')) {
-                            parentToggleLink.classList.add('active');
-                        }
-                    }
-                }
-            }
-        });
-
-        // Keep submenus open on page load if they have active items
-        var activeInSubmenu = document.querySelectorAll('.submenu-item a.active');
-        activeInSubmenu.forEach(function(activeLink) {
-            var parentCollapse = activeLink.closest('.collapse');
-            if (parentCollapse && !parentCollapse.classList.contains('show')) {
-                parentCollapse.classList.add('show');
-                var parentToggle = document.querySelector('[data-toggle="collapse"][href="#' + parentCollapse.id + '"]');
-                if (parentToggle) {
-                    parentToggle.setAttribute('aria-expanded', 'true');
+        var links = document.querySelectorAll('.nav-link-custom, .submenu-item a');
+        links.forEach(function(link) {
+            if (link.getAttribute('href') && currentUrl.includes(link.getAttribute('href').split('/').pop())) {
+                link.classList.add('active');
+                var parent = link.closest('.collapse');
+                if (parent) {
+                    parent.classList.add('show');
+                    var toggle = document.querySelector('[href="#' + parent.id + '"]');
+                    if (toggle) toggle.setAttribute('aria-expanded', 'true');
                 }
             }
         });
     });
+
+    // Notification Modal Logic
+    function openNotificationCenter() {
+        const modal = document.getElementById('notificationCenterModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeNotificationCenter() {
+        const modal = document.getElementById('notificationCenterModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
 </script>
+
+<!-- Floating notification bell -->
+<div onclick="openNotificationCenter()" class="fixed top-6 right-6 z-[2000] cursor-pointer group">
+    <div class="relative w-14 h-14 bg-white rounded-2xl shadow-2xl flex items-center justify-center border border-gray-100 hover:scale-110 active:scale-95 transition-all duration-300">
+        <i class="fas fa-bell text-xl text-indigo-600 group-hover:rotate-12 transition-transform"></i>
+        <?php if ($notif_count > 0): ?>
+            <span class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                <?php echo $notif_count; ?>
+            </span>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Notification Center Modal (Inbox List) -->
+<div id="notificationCenterModal" class="fixed inset-0 bg-slate-900/60 hidden z-[3000] items-center justify-end p-4 backdrop-blur-[2px] transition-all duration-500">
+    <div class="bg-white w-full max-w-sm h-[90vh] rounded-[32px] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col animate-fade-in-right transform">
+        
+        <!-- Premium Header Area -->
+        <div class="p-8 bg-[#0f172a] text-white relative overflow-hidden">
+            <div class="absolute top-[-20px] right-[-20px] w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-[-20px] left-[-20px] w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            
+            <div class="flex items-center justify-between mb-6 relative z-10">
+                <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 shadow-xl">
+                    <i class="fas fa-bell-concierge text-indigo-400 text-lg"></i>
+                </div>
+                <button onclick="closeNotificationCenter()" class="w-10 h-10 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all duration-300 group">
+                    <i class="fas fa-xmark text-white/40 group-hover:text-white text-sm transition-colors"></i>
+                </button>
+            </div>
+            
+            <div class="relative z-10">
+                <h3 class="text-2xl font-extrabold tracking-tight">Broadcast Inbox</h3>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">PRMS Secure Network</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification List (Compact High Density) -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#f8fafc] scroll-smooth">
+            <?php if (count($all_notifications) > 0): ?>
+                <?php foreach ($all_notifications as $notif): ?>
+                    <div onclick="viewFullAnnouncement('<?php echo addslashes(htmlspecialchars($notif['title'])); ?>', '<?php echo addslashes(nl2br(htmlspecialchars($notif['message']))); ?>', '<?php echo date('d M Y, h:i A', strtotime($notif['start_at'])); ?>')" 
+                         class="bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300 group cursor-pointer active:scale-[0.98]">
+                        <div class="flex items-start gap-4">
+                            <div class="mt-1 w-2 h-2 rounded-full bg-indigo-500 ring-4 ring-indigo-50 shrink-0"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                                        <?php echo date('h:i A', strtotime($notif['start_at'])); ?>
+                                    </span>
+                                    <span class="text-[8px] font-bold bg-indigo-50 text-indigo-400 px-2 py-1 rounded-lg">NEW</span>
+                                </div>
+                                <h4 class="font-bold text-slate-900 text-sm leading-tight mb-2 truncate group-hover:text-indigo-600 transition-colors">
+                                    <?php echo htmlspecialchars($notif['title']); ?>
+                                </h4>
+                                <p class="text-slate-500 text-xs leading-relaxed line-clamp-2">
+                                    <?php echo mb_strimwidth(htmlspecialchars($notif['message']), 0, 80, "..."); ?>
+                                </p>
+                                <div class="mt-3 flex items-center gap-1 text-[10px] font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Click to expand <i class="fas fa-chevron-right text-[8px]"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="h-full flex flex-col items-center justify-center text-center px-10 py-20 pointer-events-none">
+                    <div class="w-24 h-24 bg-slate-100/50 rounded-[40px] flex items-center justify-center mb-8 border border-white shadow-inner relative">
+                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent rounded-[40px]"></div>
+                        <i class="fas fa-inbox text-3xl text-slate-200"></i>
+                    </div>
+                    <h5 class="text-slate-900 font-extrabold text-xl tracking-tight">Archive Empty</h5>
+                    <p class="text-slate-400 text-xs mt-3 leading-relaxed max-w-[200px] mx-auto font-medium">All clear! There are no priority announcements for your session right now.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Professional Footer -->
+        <div class="p-6 border-t border-slate-100 bg-white">
+            <button onclick="closeNotificationCenter()" class="w-full h-14 bg-[#0f172a] hover:bg-black text-white font-bold text-xs uppercase tracking-[0.25em] rounded-2xl transition-all duration-300 shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95">
+                <span>Close Inbox</span>
+                <i class="fas fa-arrow-right text-[10px] opacity-40"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Full Announcement Reader View (Floating Full Screen) -->
+<div id="fullAnnouncementReader" class="fixed inset-0 bg-[#0f172a]/95 hidden z-[4000] items-center justify-center p-4 backdrop-blur-xl animate-fade-in-up">
+    <div class="bg-white w-full max-w-2xl max-h-[85vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col">
+        <!-- Reader Header -->
+        <div class="p-10 border-b border-slate-100 relative">
+            <button onclick="closeAnnouncementReader()" class="absolute top-10 right-10 w-12 h-12 rounded-2xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition group">
+                <i class="fas fa-xmark text-slate-400 group-hover:text-slate-900 transition-colors"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-4">
+                <span id="readDateTime" class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-full uppercase tracking-[0.15em]"></span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">• Official Broadcast</span>
+            </div>
+            <h2 id="readTitle" class="text-3xl font-black text-slate-900 leading-tight tracking-tight"></h2>
+        </div>
+
+        <!-- Message Body -->
+        <div class="flex-1 overflow-y-auto p-10 bg-gradient-to-b from-white to-slate-50/50">
+            <div id="readMessage" class="text-slate-600 text-lg leading-relaxed space-y-4 font-medium"></div>
+        </div>
+
+        <!-- Reader Footer -->
+        <div class="p-8 bg-slate-50 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-900 uppercase">PRMS Admin</p>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">System Authority</p>
+                </div>
+            </div>
+            <button onclick="closeAnnouncementReader()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition shadow-lg shadow-indigo-200 active:scale-95">
+                Mark as Read
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Expand notification to full reader view
+    function viewFullAnnouncement(title, message, datetime) {
+        document.getElementById('readTitle').innerHTML = title;
+        document.getElementById('readMessage').innerHTML = message;
+        document.getElementById('readDateTime').innerText = datetime;
+
+        const reader = document.getElementById('fullAnnouncementReader');
+        reader.classList.remove('hidden');
+        reader.classList.add('flex');
+    }
+
+    function closeAnnouncementReader() {
+        const reader = document.getElementById('fullAnnouncementReader');
+        reader.classList.add('hidden');
+        reader.classList.remove('flex');
+    }
+</script>
+<style>
+    @keyframes fade-in-up {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+        animation: fade-in-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+</style>

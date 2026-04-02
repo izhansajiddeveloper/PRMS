@@ -124,15 +124,6 @@ $monthly_earnings = $completed_this_month * $doctor['consultation_fee'];
 $cleanup = "DELETE FROM announcements WHERE expiry_at IS NOT NULL AND expiry_at < NOW()";
 mysqli_query($conn, $cleanup);
 
-// Fetch Announcements (Only show if active, after start_at, and before expiry_at)
-$announcements_query = "SELECT * FROM announcements 
-                        WHERE status = 'active' 
-                        AND (target_audience = 'all' OR target_audience = 'doctors') 
-                        AND (start_at <= NOW())
-                        AND (expiry_at IS NULL OR expiry_at > NOW())
-                        ORDER BY start_at DESC LIMIT 3";
-$announcements_result = mysqli_query($conn, $announcements_query);
-
 include '../includes/header.php';
 include '../includes/sidebar.php';
 ?>
@@ -266,25 +257,6 @@ include '../includes/sidebar.php';
             </div>
         </div>
 
-        <!-- Announcements Section -->
-        <?php if (mysqli_num_rows($announcements_result) > 0): ?>
-            <div class="mb-8 space-y-3">
-                <?php while ($ann = mysqli_fetch_assoc($announcements_result)): ?>
-                    <div class="bg-indigo-50 border-l-4 border-indigo-600 rounded-r-xl p-4 flex items-start gap-4 shadow-sm animate-pulse-once">
-                        <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white shrink-0 mt-1">
-                            <i class="fas fa-bullhorn"></i>
-                        </div>
-                        <div class="flex-1">
-                            <div class="flex justify-between items-start">
-                                <h4 class="font-bold text-indigo-900"><?php echo htmlspecialchars($ann['title']); ?></h4>
-                                <span class="text-[10px] bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full font-bold uppercase"><?php echo date('d M, h:i A', strtotime($ann['start_at'])); ?></span>
-                            </div>
-                            <p class="text-indigo-800 text-sm mt-1 leading-relaxed"><?php echo nl2br(htmlspecialchars($ann['message'])); ?></p>
-                        </div>
-                    </div>
-                <?php endwhile; ?>
-            </div>
-        <?php endif; ?>
 
         <!-- Metric Statistics Row -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">

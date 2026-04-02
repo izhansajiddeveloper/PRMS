@@ -11,24 +11,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $message = mysqli_real_escape_string($conn, $_POST['message']);
     $target_audience = mysqli_real_escape_string($conn, $_POST['target_audience']);
     $status = mysqli_real_escape_string($conn, $_POST['status']);
-    $now = new DateTime();
-    $start_at = $now->format('Y-m-d H:i:s');
-    
-    // Calculate expiry time (Mandatory)
+    $duration = $_POST['duration'];
+
+    // Determine interval based on duration
+    $interval = "1 DAY"; // Default
     switch($duration) {
-        case '1h': $now->modify('+1 hour'); break;
-        case '2h': $now->modify('+2 hours'); break;
-        case '1d': $now->modify('+1 day'); break;
-        case '2d': $now->modify('+2 days'); break;
-        case '5d': $now->modify('+5 days'); break;
-        default: $now->modify('+1 day'); break; // Fallback
+        case '1h': $interval = "1 HOUR"; break;
+        case '2h': $interval = "2 HOUR"; break;
+        case '1d': $interval = "1 DAY"; break;
+        case '2d': $interval = "2 DAY"; break;
+        case '5d': $interval = "5 DAY"; break;
     }
-    $expiry_at = $now->format('Y-m-d H:i:s');
 
     $insert_query = "INSERT INTO announcements (title, message, target_audience, status, start_at, expiry_at) 
-                    VALUES (?, ?, ?, ?, ?, ?)";
+                    VALUES (?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL $interval))";
     $stmt = mysqli_prepare($conn, $insert_query);
-    mysqli_stmt_bind_param($stmt, "ssssss", $title, $message, $target_audience, $status, $start_at, $expiry_at);
+    mysqli_stmt_bind_param($stmt, "ssss", $title, $message, $target_audience, $status);
     
     if (mysqli_stmt_execute($stmt)) {
         setFlashMessage("Announcement broadcasted successfully!", "success");
