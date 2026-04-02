@@ -1,6 +1,6 @@
 <?php
-require_once '../../config/db.php';
-require_once '../../includes/auth.php';
+require_once '../../../config/db.php';
+require_once '../../../includes/auth.php';
 
 // Check if user is admin
 checkRole(['admin']);
@@ -66,9 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_stmt_execute($stmt);
 
             // Update doctors table
-            $update_doctor = "UPDATE doctors SET specialization = ? WHERE id = ?";
+            $category_id = intval($_POST['category_id']);
+            $update_doctor = "UPDATE doctors SET specialization = ?, category_id = ? WHERE id = ?";
             $stmt = mysqli_prepare($conn, $update_doctor);
-            mysqli_stmt_bind_param($stmt, "si", $specialization, $doctor_id);
+            mysqli_stmt_bind_param($stmt, "sii", $specialization, $category_id, $doctor_id);
             mysqli_stmt_execute($stmt);
 
             // Commit transaction
@@ -85,8 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-include '../../includes/header.php';
-include '../../includes/sidebar.php';
+include '../../../includes/header.php';
+include '../../../includes/sidebar.php';
 ?>
 
 <!-- Main Content -->
@@ -156,11 +157,26 @@ include '../../includes/sidebar.php';
                     <!-- Doctor Information -->
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 mt-6 pb-2 border-b">Doctor Information</h3>
 
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Specialization *</label>
-                        <input type="text" name="specialization" required value="<?php echo htmlspecialchars($doctor['specialization']); ?>"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                            placeholder="e.g., Cardiologist, Neurologist, Pediatrician">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                            <select name="category_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                                <option value="">Select Category</option>
+                                <?php
+                                $categories_result = mysqli_query($conn, "SELECT id, name FROM categories WHERE status = 'active' ORDER BY name ASC");
+                                while ($cat = mysqli_fetch_assoc($categories_result)): ?>
+                                    <option value="<?php echo $cat['id']; ?>" <?php echo $doctor['category_id'] == $cat['id'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($cat['name']); ?>
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Specialization *</label>
+                            <input type="text" name="specialization" required value="<?php echo htmlspecialchars($doctor['specialization']); ?>"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                placeholder="e.g., Cardiologist, Neurologist">
+                        </div>
                     </div>
 
                     <!-- Form Actions -->

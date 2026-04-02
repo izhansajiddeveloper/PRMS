@@ -64,21 +64,48 @@ $recent_appointments_query = "SELECT a.*, p.name as patient_name, d.user_id, u.n
                               LIMIT 5";
 $recent_appointments_result = mysqli_query($conn, $recent_appointments_query);
 
-// Monthly Records Data for Chart (Last 6 months)
-$monthly_records_query = "SELECT 
-                            DATE_FORMAT(visit_date, '%Y-%m') as month,
-                            COUNT(*) as total
-                          FROM records
-                          WHERE visit_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                          GROUP BY DATE_FORMAT(visit_date, '%Y-%m')
-                          ORDER BY month ASC";
-$monthly_records_result = mysqli_query($conn, $monthly_records_query);
+// Total Revenue (Completed Payments)
+$revenue_query = "SELECT SUM(amount) as total FROM payments WHERE status = 'completed'";
+$revenue_result = mysqli_query($conn, $revenue_query);
+$total_revenue = mysqli_fetch_assoc($revenue_result)['total'] ?? 0;
+
+// Today's Revenue
+$today_revenue_query = "SELECT SUM(amount) as total FROM payments 
+                        WHERE status = 'completed' AND DATE(created_at) = '$today_date'";
+$today_revenue_result = mysqli_query($conn, $today_revenue_query);
+$today_revenue = mysqli_fetch_assoc($today_revenue_result)['total'] ?? 0;
+
+// Monthly Records & Revenue Data for Chart (Last 6 months)
+$monthly_data_query = "SELECT 
+                        DATE_FORMAT(m.month_date, '%Y-%m') as month,
+                        COALESCE(r.total_visits, 0) as total_visits,
+                        COALESCE(p.total_revenue, 0) as total_revenue
+                      FROM (
+                        SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m-01') as month_date UNION
+                        SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 4 MONTH), '%Y-%m-01') UNION
+                        SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 3 MONTH), '%Y-%m-01') UNION
+                        SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 2 MONTH), '%Y-%m-01') UNION
+                        SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH), '%Y-%m-01') UNION
+                        SELECT DATE_FORMAT(NOW(), '%Y-%m-01')
+                      ) m
+                      LEFT JOIN (
+                        SELECT DATE_FORMAT(visit_date, '%Y-%m') as month, COUNT(*) as total_visits
+                        FROM records GROUP BY month
+                      ) r ON DATE_FORMAT(m.month_date, '%Y-%m') = r.month
+                      LEFT JOIN (
+                        SELECT DATE_FORMAT(created_at, '%Y-%m') as month, SUM(amount) as total_revenue
+                        FROM payments WHERE status = 'completed' GROUP BY month
+                      ) p ON DATE_FORMAT(m.month_date, '%Y-%m') = p.month
+                      ORDER BY month ASC";
+$monthly_data_result = mysqli_query($conn, $monthly_data_query);
 
 $months = [];
 $records_data = [];
-while ($row = mysqli_fetch_assoc($monthly_records_result)) {
+$revenue_chart_data = [];
+while ($row = mysqli_fetch_assoc($monthly_data_result)) {
     $months[] = date('M Y', strtotime($row['month'] . '-01'));
-    $records_data[] = $row['total'];
+    $records_data[] = $row['total_visits'];
+    $revenue_chart_data[] = $row['total_revenue'];
 }
 
 // Doctor-wise Records Count
@@ -128,16 +155,16 @@ include '../includes/sidebar.php';
 
         <!-- Statistics Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Total Users -->
+            <!-- Total Revenue -->
             <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm">Total Users</p>
-                        <p class="text-3xl font-bold text-gray-800"><?php echo $total_users; ?></p>
-                        <p class="text-green-600 text-xs mt-2">Active accounts</p>
+                        <p class="text-gray-500 text-sm">Total Revenue</p>
+                        <p class="text-2xl font-bold text-gray-800">Rs. <?php echo number_format($total_revenue, 0); ?></p>
+                        <p class="text-emerald-600 text-xs mt-2 font-semibold">Today: Rs. <?php echo number_format($today_revenue, 0); ?></p>
                     </div>
-                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-wallet text-emerald-600 text-xl"></i>
                     </div>
                 </div>
             </div>
@@ -174,9 +201,9 @@ include '../includes/sidebar.php';
             <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm">Medical Records</p>
+                        <p class="text-gray-500 text-sm">Patient Visits</p>
                         <p class="text-3xl font-bold text-gray-800"><?php echo $total_records; ?></p>
-                        <p class="text-orange-600 text-xs mt-2">Total visits</p>
+                        <p class="text-orange-600 text-xs mt-2">Total clinic visits</p>
                     </div>
                     <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
                         <i class="fas fa-notes-medical text-orange-600 text-xl"></i>
@@ -327,7 +354,7 @@ include '../includes/sidebar.php';
                         <?php while ($appointment = mysqli_fetch_assoc($recent_appointments_result)): ?>
                             <tr class="hover:bg-gray-50">
                                 <td class="px-3 py-2 text-sm text-gray-800"><?php echo htmlspecialchars($appointment['patient_name']); ?></td>
-                                <td class="px-3 py-2 text-sm text-gray-600">Dr. <?php echo htmlspecialchars($appointment['doctor_name']); ?></td>
+                                <td class="px-3 py-2 text-sm text-gray-600"><?php echo htmlspecialchars($appointment['doctor_name']); ?></td>
                                 <td class="px-3 py-2 text-sm text-gray-600"><?php echo date('d M Y, h:i A', strtotime($appointment['appointment_date'])); ?></td>
                                 <td class="px-3 py-2">
                                     <span class="px-2 py-1 text-xs rounded-full 
@@ -352,52 +379,65 @@ include '../includes/sidebar.php';
         type: 'line',
         data: {
             labels: <?php echo json_encode($months); ?>,
-            datasets: [{
-                label: 'Patient Visits',
-                data: <?php echo json_encode($records_data); ?>,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointRadius: 3,
-                pointHoverRadius: 5
-            }]
+            datasets: [
+                {
+                    label: 'Patient Visits',
+                    data: <?php echo json_encode($records_data); ?>,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Revenue (Rs.)',
+                    data: <?php echo json_encode($revenue_chart_data); ?>,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y1',
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             plugins: {
                 legend: {
                     position: 'top',
-                    labels: {
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
-                tooltip: {
-                    bodyFont: {
-                        size: 11
-                    },
-                    titleFont: {
-                        size: 11
-                    }
                 }
             },
             scales: {
                 y: {
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Visits'
+                    },
+                    ticks: { font: { size: 10 } }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Revenue'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    ticks: { font: { size: 10 } }
                 },
                 x: {
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
+                    ticks: { font: { size: 10 } }
                 }
             }
         }

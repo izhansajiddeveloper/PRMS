@@ -208,45 +208,55 @@ include '../includes/sidebar.php';
                         </h2>
                     </div>
                     <div class="p-6 space-y-3">
-                        <a href="../admin/users/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition group">
+                        <a href="users/doctors/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition group">
                             <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-200">
-                                <i class="fas fa-users text-blue-600"></i>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-gray-800">Manage Users</p>
-                                <p class="text-xs text-gray-500">Add, edit or remove system users</p>
-                            </div>
-                            <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-blue-600"></i>
-                        </a>
-                        <a href="../admin/doctors/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition group">
-                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-green-200">
-                                <i class="fas fa-user-md text-green-600"></i>
+                                <i class="fas fa-user-md text-blue-600"></i>
                             </div>
                             <div>
                                 <p class="font-semibold text-gray-800">Manage Doctors</p>
-                                <p class="text-xs text-gray-500">Add, edit or remove doctors</p>
+                                <p class="text-xs text-gray-500">Register and manage medical staff</p>
                             </div>
-                            <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-green-600"></i>
+                            <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-blue-600"></i>
                         </a>
-                        <a href="../admin/patients/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition group">
-                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-purple-200">
-                                <i class="fas fa-hospital-user text-purple-600"></i>
+                        <a href="categories/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-emerald-50 transition group">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-emerald-200">
+                                <i class="fas fa-tags text-emerald-600"></i>
                             </div>
                             <div>
-                                <p class="font-semibold text-gray-800">Manage Patients</p>
-                                <p class="text-xs text-gray-500">View and manage patient records</p>
+                                <p class="font-semibold text-gray-800">Clinical Categories</p>
+                                <p class="text-xs text-gray-500">Manage departments and specializations</p>
+                            </div>
+                            <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-emerald-600"></i>
+                        </a>
+                        <a href="schedules/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-purple-50 transition group">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-purple-200">
+                                <i class="fas fa-calendar-check text-purple-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">Doctor Schedules</p>
+                                <p class="text-xs text-gray-500">Set working hours and shifts</p>
                             </div>
                             <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-purple-600"></i>
                         </a>
-                        <a href="../admin/appointments/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition group">
+                        <a href="appointments/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-yellow-50 transition group">
                             <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-yellow-200">
                                 <i class="fas fa-calendar-alt text-yellow-600"></i>
                             </div>
                             <div>
-                                <p class="font-semibold text-gray-800">View Appointments</p>
-                                <p class="text-xs text-gray-500">Monitor all appointments</p>
+                                <p class="font-semibold text-gray-800">Review Appointments</p>
+                                <p class="text-xs text-gray-500">Monitor all clinic bookings</p>
                             </div>
                             <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-yellow-600"></i>
+                        </a>
+                        <a href="payments/index.php" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-red-50 transition group">
+                            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-red-200">
+                                <i class="fas fa-file-invoice-dollar text-red-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">Finance & Payments</p>
+                                <p class="text-xs text-gray-500">Audit transactions and records</p>
+                            </div>
+                            <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-red-600"></i>
                         </a>
                     </div>
                 </div>

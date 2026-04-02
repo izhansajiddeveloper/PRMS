@@ -111,6 +111,19 @@ $recent_payments_query = "SELECT py.*, p.name as patient_name
                           ORDER BY py.payment_date DESC LIMIT 5";
 $recent_payments_result = mysqli_query($conn, $recent_payments_query);
 
+// Auto-delete expired announcements (Cleanup)
+$cleanup = "DELETE FROM announcements WHERE expiry_at IS NOT NULL AND expiry_at < NOW()";
+mysqli_query($conn, $cleanup);
+
+// Fetch Announcements (Only show if active, after start_at, and before expiry_at)
+$announcements_query = "SELECT * FROM announcements 
+                        WHERE status = 'active' 
+                        AND (target_audience = 'all' OR target_audience = 'staff') 
+                        AND (start_at <= NOW())
+                        AND (expiry_at IS NULL OR expiry_at > NOW())
+                        ORDER BY start_at DESC LIMIT 3";
+$announcements_result = mysqli_query($conn, $announcements_query);
+
 include '../includes/header.php';
 include '../includes/sidebar.php';
 ?>
@@ -124,6 +137,26 @@ include '../includes/sidebar.php';
             <p class="text-gray-600">Welcome back, <?php echo htmlspecialchars($_SESSION['user_name']); ?>!</p>
             <p class="text-sm text-gray-500 mt-1">Shift: <?php echo htmlspecialchars($staff['shift']); ?> | Position: <?php echo htmlspecialchars($staff['position']); ?></p>
         </div>
+
+        <!-- System Announcements -->
+        <?php if (mysqli_num_rows($announcements_result) > 0): ?>
+            <div class="mb-8 space-y-3">
+                <?php while ($ann = mysqli_fetch_assoc($announcements_result)): ?>
+                    <div class="bg-blue-50 border-l-4 border-blue-600 rounded-lg p-4 flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0">
+                            <i class="fas fa-bullhorn rotate-[-15deg]"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <h4 class="font-bold text-gray-800 tracking-tight"><?php echo htmlspecialchars($ann['title']); ?></h4>
+                                <span class="text-[10px] text-blue-600 font-bold tracking-widest uppercase bg-blue-100 px-2 py-0.5 rounded-full"><?php echo date('d M, h:i A', strtotime($ann['start_at'])); ?></span>
+                            </div>
+                            <p class="text-gray-700 text-sm mt-1 leading-relaxed"><?php echo nl2br(htmlspecialchars($ann['message'])); ?></p>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
+            </div>
+        <?php endif; ?>
 
         <!-- Statistics Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

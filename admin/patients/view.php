@@ -138,7 +138,7 @@ include '../../includes/sidebar.php';
                             <?php while ($record = mysqli_fetch_assoc($records_result)): ?>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-3 text-sm text-gray-800"><?php echo date('d M Y, h:i A', strtotime($record['visit_date'])); ?></td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">Dr. <?php echo htmlspecialchars($record['doctor_name']); ?></td>
+                                    <td class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($record['doctor_name']); ?></td>
                                     <td class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars(substr($record['symptoms'], 0, 50)) . (strlen($record['symptoms']) > 50 ? '...' : ''); ?></td>
                                     <td class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars(substr($record['diagnosis'], 0, 50)) . (strlen($record['diagnosis']) > 50 ? '...' : ''); ?></td>
                                     <td class="px-4 py-3">
@@ -169,7 +169,7 @@ include '../../includes/sidebar.php';
                                     <p class="text-sm text-gray-600">Dosage: <?php echo htmlspecialchars($prescription['dosage']); ?></p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-xs text-gray-500">Prescribed by: Dr. <?php echo htmlspecialchars($prescription['doctor_name']); ?></p>
+                                    <p class="text-xs text-gray-500">Prescribed by: <?php echo htmlspecialchars($prescription['doctor_name']); ?></p>
                                     <p class="text-xs text-gray-500">Date: <?php echo date('d M Y', strtotime($prescription['visit_date'])); ?></p>
                                 </div>
                             </div>

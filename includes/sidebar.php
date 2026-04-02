@@ -17,12 +17,13 @@ $current_full_url = $_SERVER['REQUEST_URI'];
 $current_dir = basename(dirname($_SERVER['PHP_SELF']));
 
 // Module detection
-$is_users_module = (strpos($current_full_url, '/admin/users/') !== false);
-$is_doctors_module = (strpos($current_full_url, '/admin/doctors/') !== false);
-$is_receptionists_module = (strpos($current_full_url, '/admin/receptionists/') !== false);
+$is_users_module = (strpos($current_full_url, '/admin/users/') !== false) || (strpos($current_full_url, '/admin/doctors/') !== false) || (strpos($current_full_url, '/admin/staff/') !== false);
 $is_patients_module = (strpos($current_full_url, '/admin/patients/') !== false) || (strpos($current_full_url, '/doctor/patients.php') !== false);
 $is_records_module = (strpos($current_full_url, '/doctor/records/') !== false);
-$is_appointments_module = (strpos($current_full_url, '/receptionist/appointments/') !== false);
+$is_appointments_module = (strpos($current_full_url, '/admin/appointments/') !== false) || (strpos($current_full_url, '/receptionist/appointments/') !== false);
+$is_categories_module = (strpos($current_full_url, '/admin/categories/') !== false);
+$is_schedules_module = (strpos($current_full_url, '/admin/schedules/') !== false);
+$is_payments_module = (strpos($current_full_url, '/admin/payments/') !== false);
 
 // Get user info
 $user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'Guest';
@@ -432,81 +433,66 @@ $user_avatar = strtoupper(substr($user_name, 0, 1));
                 <span>ADMIN CORE</span>
             </div>
 
-            <!-- Users Management with Submenu -->
+            <!-- User Management Drodown (Doctors & Staff) -->
             <li class="nav-item">
                 <a class="nav-link-custom <?= $is_users_module ? 'active' : '' ?>" data-toggle="collapse" href="#userMgmt" role="button" aria-expanded="<?= $is_users_module ? 'true' : 'false' ?>" aria-controls="userMgmt">
-                    <i class="fas fa-users"></i>
+                    <i class="fas fa-users-cog"></i>
                     <span>User Management</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
                 <div class="collapse <?= $is_users_module ? 'show' : '' ?>" id="userMgmt">
                     <ul class="submenu">
                         <li class="submenu-item">
-                            <a href="<?= BASE_URL ?>admin/users/index.php" class="<?= ($current_dir == 'users' && $current_page == 'index.php') ? 'active' : '' ?>">
-                                <i class="fas fa-list-ul"></i>
-                                <span>All System Users</span>
+                            <a href="<?= BASE_URL ?>admin/users/doctors/index.php" class="<?= (strpos($current_full_url, '/admin/users/doctors/') !== false) ? 'active' : '' ?>">
+                                <i class="fas fa-user-md"></i>
+                                <span>Doctors Panel</span>
                             </a>
                         </li>
                         <li class="submenu-item">
-                            <a href="<?= BASE_URL ?>admin/users/create.php" class="<?= ($current_dir == 'users' && $current_page == 'create.php') ? 'active' : '' ?>">
-                                <i class="fas fa-user-plus"></i>
-                                <span>Add New User</span>
+                            <a href="<?= BASE_URL ?>admin/users/receptionists/index.php" class="<?= (strpos($current_full_url, '/admin/users/receptionists/') !== false) ? 'active' : '' ?>">
+                                <i class="fas fa-id-card-alt"></i>
+                                <span>Reception Staff</span>
                             </a>
                         </li>
-
                     </ul>
                 </div>
             </li>
 
-            <!-- Doctors Management with Submenu -->
+            <!-- Categories -->
             <li class="nav-item">
-                <a class="nav-link-custom <?= $is_doctors_module ? 'active' : '' ?>" data-toggle="collapse" href="#doctorMgmt" role="button" aria-expanded="<?= $is_doctors_module ? 'true' : 'false' ?>" aria-controls="doctorMgmt">
-                    <i class="fas fa-user-md"></i>
-                    <span>Doctors Panel</span>
-                    <i class="fas fa-chevron-down chevron"></i>
+                <a href="<?= BASE_URL ?>admin/categories/index.php" class="nav-link-custom <?= $is_categories_module ? 'active' : '' ?>">
+                    <i class="fas fa-tags"></i>
+                    <span>Manage Categories</span>
                 </a>
-                <div class="collapse <?= $is_doctors_module ? 'show' : '' ?>" id="doctorMgmt">
-                    <ul class="submenu">
-                        <li class="submenu-item">
-                            <a href="<?= BASE_URL ?>admin/doctors/index.php" class="<?= ($current_dir == 'doctors' && $current_page == 'index.php') ? 'active' : '' ?>">
-                                <i class="fas fa-stethoscope"></i>
-                                <span>All Doctors</span>
-                            </a>
-                        </li>
-                        <li class="submenu-item">
-                            <a href="<?= BASE_URL ?>admin/doctors/create.php" class="<?= ($current_dir == 'doctors' && $current_page == 'create.php') ? 'active' : '' ?>">
-                                <i class="fas fa-plus-circle"></i>
-                                <span>Register New Doctor</span>
-                            </a>
-                        </li>
-
-                    </ul>
-                </div>
             </li>
 
-            <!-- Receptionists/Staff Management -->
+            <!-- Doctor Schedules -->
             <li class="nav-item">
-                <a class="nav-link-custom <?= $is_receptionists_module ? 'active' : '' ?>" data-toggle="collapse" href="#receptionistMgmt" role="button" aria-expanded="<?= $is_receptionists_module ? 'true' : 'false' ?>" aria-controls="receptionistMgmt">
-                    <i class="fas fa-headset"></i>
-                    <span>Reception Staff</span>
-                    <i class="fas fa-chevron-down chevron"></i>
+                <a href="<?= BASE_URL ?>admin/schedules/index.php" class="nav-link-custom <?= $is_schedules_module ? 'active' : '' ?>">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Doctor Schedules</span>
                 </a>
-                <div class="collapse <?= $is_receptionists_module ? 'show' : '' ?>" id="receptionistMgmt">
-                    <ul class="submenu">
-                        <li class="submenu-item">
-                            <a href="<?= BASE_URL ?>admin/receptionists/index.php">
-                                <i class="fas fa-list"></i>
-                                <span>All Receptionists</span>
-                            </a>
-                        </li>
-                        <li class="submenu-item">
-                            <a href="<?= BASE_URL ?>admin/receptionists/create.php">
-                                <i class="fas fa-user-plus"></i>
-                                <span>Add Receptionist</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+            </li>
+
+            <!-- Announcements -->
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>admin/announcements/index.php" class="nav-link-custom <?= (strpos($current_full_url, '/admin/announcements/') !== false) ? 'active' : '' ?>">
+                    <i class="fas fa-bullhorn rotate-[-15deg]"></i>
+                    <span>Announcements</span>
+                </a>
+            </li>
+
+            <div class="nav-group-title">
+                <i class="fas fa-chart-line"></i>
+                <span>FINANCIAL & LOGS</span>
+            </div>
+
+            <!-- Payments -->
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>admin/payments/index.php" class="nav-link-custom <?= $is_payments_module ? 'active' : '' ?>">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Payment Records</span>
+                </a>
             </li>
 
             <div class="nav-group-title">

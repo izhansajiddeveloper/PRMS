@@ -5,39 +5,18 @@ require_once '../../includes/auth.php';
 // Check if user is admin
 checkRole(['admin']);
 
-// Update appointment status
-if (isset($_GET['update_status']) && isset($_GET['id']) && isset($_GET['status'])) {
-    $appointment_id = mysqli_real_escape_string($conn, $_GET['id']);
-    $status = mysqli_real_escape_string($conn, $_GET['status']);
-
-    $update_query = "UPDATE appointments SET status = ? WHERE id = ?";
-    $stmt = mysqli_prepare($conn, $update_query);
-    mysqli_stmt_bind_param($stmt, "si", $status, $appointment_id);
-
-    if (mysqli_stmt_execute($stmt)) {
-        setFlashMessage("Appointment status updated successfully!", "success");
-    } else {
-        setFlashMessage("Failed to update appointment status!", "error");
-    }
-
-    header("Location: index.php");
-    exit();
-}
-
-// Delete appointment
+// Handle Delete if requested
 if (isset($_GET['delete']) && isset($_GET['id'])) {
-    $appointment_id = mysqli_real_escape_string($conn, $_GET['id']);
-
+    $appointment_id = intval($_GET['id']);
     $delete_query = "DELETE FROM appointments WHERE id = ?";
     $stmt = mysqli_prepare($conn, $delete_query);
     mysqli_stmt_bind_param($stmt, "i", $appointment_id);
 
     if (mysqli_stmt_execute($stmt)) {
-        setFlashMessage("Appointment deleted successfully!", "success");
+        setFlashMessage("Appointment record removed successfully!", "success");
     } else {
-        setFlashMessage("Failed to delete appointment!", "error");
+        setFlashMessage("Failed to delete record!", "error");
     }
-
     header("Location: index.php");
     exit();
 }
@@ -229,36 +208,33 @@ include '../../includes/sidebar.php';
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-800">Dr. <?php echo htmlspecialchars($appointment['doctor_name']); ?></td>
+                                    <td class="px-6 py-4 text-sm text-gray-800"><?php echo htmlspecialchars($appointment['doctor_name']); ?></td>
                                     <td class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($appointment['specialization']); ?></td>
                                     <td class="px-6 py-4 text-sm text-gray-600">
                                         <?php echo date('d M Y', strtotime($appointment['appointment_date'])); ?><br>
                                         <span class="text-xs text-gray-400"><?php echo date('h:i A', strtotime($appointment['appointment_date'])); ?></span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <select onchange="updateStatus(<?php echo $appointment['id']; ?>, this.value)"
-                                            class="px-2 py-1 text-xs rounded-full border-0 font-semibold cursor-pointer
-                                                <?php echo $appointment['status'] == 'completed' ? 'bg-green-100 text-green-800' : ($appointment['status'] == 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'); ?>">
-                                            <option value="pending" <?php echo $appointment['status'] == 'pending' ? 'selected' : ''; ?> class="bg-white text-gray-800">Pending</option>
-                                            <option value="completed" <?php echo $appointment['status'] == 'completed' ? 'selected' : ''; ?> class="bg-white text-gray-800">Completed</option>
-                                            <option value="cancelled" <?php echo $appointment['status'] == 'cancelled' ? 'selected' : ''; ?> class="bg-white text-gray-800">Cancelled</option>
-                                        </select>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600"><?php echo date('d M Y', strtotime($appointment['created_at'])); ?></td>
-                                    <td class="px-6 py-4">
-                                        <div class="flex space-x-2">
-                                            <a href="javascript:void(0)"
-                                                onclick="viewAppointment(<?php echo $appointment['id']; ?>, '<?php echo htmlspecialchars($appointment['patient_name']); ?>', '<?php echo htmlspecialchars($appointment['doctor_name']); ?>', '<?php echo $appointment['appointment_date']; ?>')"
-                                                class="text-green-600 hover:text-green-800 transition" title="View Details">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="javascript:void(0)"
-                                                onclick="confirmDelete(<?php echo $appointment['id']; ?>, '<?php echo htmlspecialchars($appointment['patient_name']); ?>')"
-                                                class="text-red-600 hover:text-red-800 transition" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        </div>
-                                    </td>
+                                         <span class="px-2 py-1 text-xs rounded-full font-bold uppercase
+                                             <?php echo $appointment['status'] == 'completed' ? 'bg-green-100 text-green-800' : ($appointment['status'] == 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'); ?>">
+                                             <?php echo $appointment['status']; ?>
+                                         </span>
+                                     </td>
+                                     <td class="px-6 py-4 text-sm text-gray-400">
+                                         <?php echo date('d M Y', strtotime($appointment['created_at'])); ?>
+                                     </td>
+                                     <td class="px-6 py-4">
+                                         <div class="flex items-center justify-center gap-2">
+                                             <button onclick="viewAppointment(<?php echo $appointment['id']; ?>, '<?php echo htmlspecialchars($appointment['patient_name']); ?>', '<?php echo htmlspecialchars($appointment['doctor_name']); ?>', '<?php echo $appointment['appointment_date']; ?>')"
+                                                 class="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="View Details">
+                                                 <i class="fas fa-eye text-xs"></i>
+                                             </button>
+                                             <button onclick="confirmDelete(<?php echo $appointment['id']; ?>, '<?php echo htmlspecialchars($appointment['patient_name']); ?>')"
+                                                 class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Delete">
+                                                 <i class="fas fa-trash text-xs"></i>
+                                             </button>
+                                         </div>
+                                     </td>
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
@@ -297,15 +273,6 @@ include '../../includes/sidebar.php';
 </div>
 
 <script>
-    function updateStatus(id, status) {
-        if (confirm(`Are you sure you want to change this appointment status to ${status}?`)) {
-            window.location.href = `?update_status&id=${id}&status=${status}`;
-        } else {
-            // Reload page to revert select box
-            location.reload();
-        }
-    }
-
     function viewAppointment(id, patientName, doctorName, appointmentDate) {
         const modal = document.getElementById('viewModal');
         const modalContent = document.getElementById('modalContent');
@@ -327,7 +294,7 @@ include '../../includes/sidebar.php';
             </div>
             <div class="flex justify-between py-2 border-b">
                 <span class="font-semibold text-gray-600">Doctor:</span>
-                <span class="text-gray-800">Dr. ${doctorName}</span>
+                <span class="text-gray-800">${doctorName}</span>
             </div>
             <div class="flex justify-between py-2 border-b">
                 <span class="font-semibold text-gray-600">Date & Time:</span>

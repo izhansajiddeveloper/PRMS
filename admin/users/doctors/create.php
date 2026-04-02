@@ -1,6 +1,6 @@
 <?php
-require_once '../../config/db.php';
-require_once '../../includes/auth.php';
+require_once '../../../config/db.php';
+require_once '../../../includes/auth.php';
 
 // Check if user is admin
 checkRole(['admin']);
@@ -18,15 +18,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $status = mysqli_real_escape_string($conn, $_POST['status']);
     $role_id = 2; // Doctor role is fixed
 
-    // Check if email already exists
-    $check_query = "SELECT id FROM users WHERE email = ?";
+    // Check if email or phone already exists
+    $check_query = "SELECT id FROM users WHERE email = ? OR phone = ?";
     $stmt = mysqli_prepare($conn, $check_query);
-    mysqli_stmt_bind_param($stmt, "s", $email);
+    mysqli_stmt_bind_param($stmt, "ss", $email, $phone);
     mysqli_stmt_execute($stmt);
-    mysqli_stmt_store_result($stmt);
+    $check_result = mysqli_stmt_get_result($stmt);
 
-    if (mysqli_stmt_num_rows($stmt) > 0) {
-        $error = "Email address already exists!";
+    if ($row = mysqli_fetch_assoc($check_result)) {
+        $error = "A user with this email or phone number already exists!";
     } else {
         // Start transaction
         mysqli_begin_transaction($conn);
@@ -41,9 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user_id = mysqli_insert_id($conn);
 
             // Insert into doctors table
-            $insert_doctor = "INSERT INTO doctors (user_id, specialization) VALUES (?, ?)";
+            $category_id = intval($_POST['category_id']);
+            $insert_doctor = "INSERT INTO doctors (user_id, specialization, category_id) VALUES (?, ?, ?)";
             $stmt = mysqli_prepare($conn, $insert_doctor);
-            mysqli_stmt_bind_param($stmt, "is", $user_id, $specialization);
+            mysqli_stmt_bind_param($stmt, "isi", $user_id, $specialization, $category_id);
             mysqli_stmt_execute($stmt);
 
             // Commit transaction
@@ -60,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-include '../../includes/header.php';
-include '../../includes/sidebar.php';
+include '../../../includes/header.php';
+include '../../../includes/sidebar.php';
 ?>
 
 <!-- Main Content -->
@@ -135,11 +136,24 @@ include '../../includes/sidebar.php';
                     <!-- Doctor Information -->
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 mt-6 pb-2 border-b">Doctor Information</h3>
 
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Specialization *</label>
-                        <input type="text" name="specialization" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                            placeholder="e.g., Cardiologist, Neurologist, Pediatrician, General Physician">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                            <select name="category_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                                <option value="">Select Category</option>
+                                <?php
+                                $categories_result = mysqli_query($conn, "SELECT id, name FROM categories WHERE status = 'active' ORDER BY name ASC");
+                                while ($cat = mysqli_fetch_assoc($categories_result)): ?>
+                                    <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Specialization *</label>
+                            <input type="text" name="specialization" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                placeholder="e.g., Cardiologist, Neurologist">
+                        </div>
                     </div>
 
                     <!-- Form Actions -->
