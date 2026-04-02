@@ -46,7 +46,7 @@ if ($selected_patient_id > 0) {
     mysqli_stmt_execute($stmt);
     $patient_details_result = mysqli_stmt_get_result($stmt);
     $selected_patient_details = mysqli_fetch_assoc($patient_details_result);
-    
+
     if ($selected_patient_details && $selected_patient_details['disease'] > 0) {
         $assigned_category_id = intval($selected_patient_details['disease']);
     }
@@ -238,7 +238,7 @@ include '../../includes/sidebar.php';
                             <div>
                                 <h3 class="font-bold text-gray-800 text-lg"><?php echo htmlspecialchars($selected_patient_details['name']); ?></h3>
                                 <p class="text-sm text-gray-600 mt-1">
-                                    <i class="fas fa-venus-mars mr-1 text-gray-400"></i> <?php echo $selected_patient_details['age']; ?> yrs, <?php echo ucfirst($selected_patient_details['gender']); ?> | 
+                                    <i class="fas fa-venus-mars mr-1 text-gray-400"></i> <?php echo $selected_patient_details['age']; ?> yrs, <?php echo ucfirst($selected_patient_details['gender']); ?> |
                                     <i class="fas fa-phone mr-1 ml-2 text-gray-400"></i> <?php echo htmlspecialchars($selected_patient_details['phone']); ?> |
                                     <i class="fas fa-weight mr-1 ml-2 text-gray-400"></i> <?php echo htmlspecialchars($selected_patient_details['weight']); ?> kg
                                 </p>
@@ -286,7 +286,7 @@ include '../../includes/sidebar.php';
                                                 </div>
                                             </div>
                                             <div class="text-right">
-                                                <p class="text-lg font-bold text-green-600">₹<?php echo number_format($doctor['consultation_fee'], 2); ?></p>
+                                                <p class="text-lg font-bold text-green-600"> Rs<?php echo number_format($doctor['consultation_fee'], 2); ?></p>
                                                 <p class="text-xs text-gray-500">Consultation Fee</p>
                                             </div>
                                         </label>
