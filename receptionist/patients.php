@@ -53,19 +53,21 @@ if (isset($_GET['delete'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_patient'])) {
     $name = mysqli_real_escape_string($conn, $_POST['name']);
     $age = intval($_POST['age']);
+    $weight = floatval($_POST['weight']);
+    $disease = intval($_POST['disease']);
     $gender = mysqli_real_escape_string($conn, $_POST['gender']);
     $phone = mysqli_real_escape_string($conn, $_POST['phone']);
-    $address = mysqli_real_escape_string($conn, $_POST['address']);
+    $city = mysqli_real_escape_string($conn, $_POST['city']);
     $blood_group = mysqli_real_escape_string($conn, $_POST['blood_group']);
     $status = 'active';
 
     if ($age < 0 || $age > 120) {
         $error = "Please enter a valid age (0-120)";
     } else {
-        $insert_query = "INSERT INTO patients (name, age, gender, phone, address, blood_group, status) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $insert_query = "INSERT INTO patients (name, age, weight, disease, gender, phone, address, blood_group, status) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = mysqli_prepare($conn, $insert_query);
-        mysqli_stmt_bind_param($stmt, "sisssss", $name, $age, $gender, $phone, $address, $blood_group, $status);
+        mysqli_stmt_bind_param($stmt, "sidisssss", $name, $age, $weight, $disease, $gender, $phone, $city, $blood_group, $status);
 
         if (mysqli_stmt_execute($stmt)) {
             $new_patient_id = mysqli_insert_id($conn);
@@ -85,18 +87,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['edit_patient'])) {
     $patient_id = intval($_POST['patient_id']);
     $name = mysqli_real_escape_string($conn, $_POST['name']);
     $age = intval($_POST['age']);
+    $weight = floatval($_POST['weight']);
+    $disease = intval($_POST['disease']);
     $gender = mysqli_real_escape_string($conn, $_POST['gender']);
     $phone = mysqli_real_escape_string($conn, $_POST['phone']);
-    $address = mysqli_real_escape_string($conn, $_POST['address']);
+    $city = mysqli_real_escape_string($conn, $_POST['city']);
     $blood_group = mysqli_real_escape_string($conn, $_POST['blood_group']);
     $status = mysqli_real_escape_string($conn, $_POST['status']);
 
     if ($age < 0 || $age > 120) {
         $error = "Please enter a valid age (0-120)";
     } else {
-        $update_query = "UPDATE patients SET name = ?, age = ?, gender = ?, phone = ?, address = ?, blood_group = ?, status = ? WHERE id = ?";
+        $update_query = "UPDATE patients SET name = ?, age = ?, weight = ?, disease = ?, gender = ?, phone = ?, address = ?, blood_group = ?, status = ? WHERE id = ?";
         $stmt = mysqli_prepare($conn, $update_query);
-        mysqli_stmt_bind_param($stmt, "sisssssi", $name, $age, $gender, $phone, $address, $blood_group, $status, $patient_id);
+        mysqli_stmt_bind_param($stmt, "sidisssssi", $name, $age, $weight, $disease, $gender, $phone, $city, $blood_group, $status, $patient_id);
 
         if (mysqli_stmt_execute($stmt)) {
             $success = "Patient updated successfully!";
@@ -137,7 +141,8 @@ if ($search) {
 $patients_query = "SELECT p.*,
                    (SELECT COUNT(*) FROM appointments 
                     WHERE patient_id = p.id AND status = 'pending' 
-                    AND appointment_date > NOW()) as pending_appointments
+                    AND appointment_date > NOW()) as pending_appointments,
+                   (SELECT name FROM categories WHERE id = p.disease) as disease_name
                    FROM patients p 
                    $where_clause
                    ORDER BY p.created_at DESC";
@@ -145,6 +150,15 @@ if (!$search) {
     $patients_query .= " LIMIT 50";
 }
 $patients_result = mysqli_query($conn, $patients_query);
+
+// Fetch categories for dropdowns
+$categories_list = [];
+$cat_q = mysqli_query($conn, "SELECT id, name FROM categories WHERE status = 'active' ORDER BY name ASC");
+if ($cat_q) {
+    while ($c = mysqli_fetch_assoc($cat_q)) {
+        $categories_list[] = $c;
+    }
+}
 
 include '../includes/header.php';
 include '../includes/sidebar.php';
@@ -202,9 +216,9 @@ include '../includes/sidebar.php';
                     <thead class="bg-gray-50 border-b">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Age/Gender</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Blood Group</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Age/Weight/Gender</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">City & Phone</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Blood Group & Disease</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                     </thead>
@@ -223,10 +237,13 @@ include '../includes/sidebar.php';
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-600">
-                                        <?php echo $patient['age']; ?> yrs /
-                                        <span class="capitalize"><?php echo $patient['gender']; ?></span>
+                                        <?php echo $patient['age']; ?> yrs / <?php echo $patient['weight']; ?> kg <br>
+                                        <span class="capitalize text-xs"><?php echo $patient['gender']; ?></span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($patient['phone']); ?></td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">
+                                        <?php echo htmlspecialchars($patient['address']); ?><br>
+                                        <span class="text-xs"><?php echo htmlspecialchars($patient['phone']); ?></span>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <?php if ($patient['blood_group']): ?>
                                             <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
@@ -235,10 +252,16 @@ include '../includes/sidebar.php';
                                         <?php else: ?>
                                             <span class="text-gray-400 text-sm">—</span>
                                         <?php endif; ?>
+                                        <br>
+                                        <?php if ($patient['disease_name']): ?>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 mt-1 inline-block">
+                                                <?php echo htmlspecialchars($patient['disease_name']); ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex space-x-2">
-                                            <button onclick="openEditModal(<?php echo $patient['id']; ?>, '<?php echo htmlspecialchars($patient['name']); ?>', <?php echo $patient['age']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo htmlspecialchars($patient['address']); ?>', '<?php echo $patient['blood_group']; ?>', '<?php echo $patient['status']; ?>')"
+                                            <button onclick="openEditModal(<?php echo $patient['id']; ?>, '<?php echo addslashes($patient['name']); ?>', <?php echo $patient['age']; ?>, <?php echo (float)$patient['weight']; ?>, <?php echo (int)$patient['disease']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo addslashes($patient['address']); ?>', '<?php echo $patient['blood_group']; ?>', '<?php echo $patient['status']; ?>')"
                                                 class="text-blue-600 hover:text-blue-800 transition" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </button>
@@ -339,7 +362,7 @@ include '../includes/sidebar.php';
                                         class="px-3 py-1 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition">
                                         <i class="fas fa-calendar-plus mr-1"></i> Book Appointment
                                     </a>
-                                    <button onclick="closeAddPatientModal(); openEditModal(<?php echo $patient['id']; ?>, '<?php echo htmlspecialchars($patient['name']); ?>', <?php echo $patient['age']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo htmlspecialchars($patient['address']); ?>', '<?php echo $patient['blood_group']; ?>', '<?php echo $patient['status']; ?>')"
+                                    <button onclick="closeAddPatientModal(); openEditModal(<?php echo $patient['id']; ?>, '<?php echo addslashes($patient['name']); ?>', <?php echo $patient['age']; ?>, <?php echo (float)$patient['weight']; ?>, <?php echo (int)$patient['disease']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo addslashes($patient['address']); ?>', '<?php echo $patient['blood_group']; ?>', '<?php echo $patient['status']; ?>')"
                                         class="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition">
                                         <i class="fas fa-edit mr-1"></i> Edit
                                     </button>
@@ -378,6 +401,11 @@ include '../includes/sidebar.php';
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Weight (kg) *</label>
+                        <input type="number" step="0.1" name="weight" required min="0" max="300"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
                         <select name="gender" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                             <option value="">Select Gender</option>
@@ -405,11 +433,20 @@ include '../includes/sidebar.php';
                             <option value="O-">O-</option>
                         </select>
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Disease / Speciality *</label>
+                        <select name="disease" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                            <option value="">Search and select disease...</option>
+                            <?php foreach ($categories_list as $cat): ?>
+                                <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                        <textarea name="address" rows="2"
+                        <label class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                        <input type="text" name="city"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                            placeholder="Enter complete address"></textarea>
+                            placeholder="Enter city">
                     </div>
                 </div>
                 <div class="flex justify-end space-x-3 mt-4 pt-4 border-t">
@@ -453,6 +490,11 @@ include '../includes/sidebar.php';
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Weight (kg) *</label>
+                    <input type="number" step="0.1" name="weight" id="edit_weight" required min="0" max="300"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
                     <select name="gender" id="edit_gender" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                         <option value="male">Male</option>
@@ -480,6 +522,15 @@ include '../includes/sidebar.php';
                     </select>
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Disease / Speciality *</label>
+                    <select name="disease" id="edit_disease" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                        <option value="">Search and select disease...</option>
+                        <?php foreach ($categories_list as $cat): ?>
+                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                     <select name="status" id="edit_status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                         <option value="active">Active</option>
@@ -487,10 +538,10 @@ include '../includes/sidebar.php';
                     </select>
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                    <textarea name="address" id="edit_address" rows="2"
+                    <label class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                    <input type="text" name="city" id="edit_city"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                        placeholder="Enter complete address"></textarea>
+                        placeholder="Enter city">
                 </div>
             </div>
             <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
@@ -581,13 +632,15 @@ include '../includes/sidebar.php';
     }
 
     // Edit Modal Functions
-    function openEditModal(id, name, age, gender, phone, address, bloodGroup, status) {
+    function openEditModal(id, name, age, weight, disease, gender, phone, city, bloodGroup, status) {
         document.getElementById('edit_patient_id').value = id;
         document.getElementById('edit_name').value = name;
         document.getElementById('edit_age').value = age;
+        document.getElementById('edit_weight').value = weight;
+        document.getElementById('edit_disease').value = disease;
         document.getElementById('edit_gender').value = gender;
         document.getElementById('edit_phone').value = phone;
-        document.getElementById('edit_address').value = address || '';
+        document.getElementById('edit_city').value = city || '';
         document.getElementById('edit_blood_group').value = bloodGroup || '';
         document.getElementById('edit_status').value = status;
 

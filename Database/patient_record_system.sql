@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 02, 2026 at 09:32 AM
+-- Generation Time: Apr 02, 2026 at 12:19 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -39,13 +39,6 @@ CREATE TABLE `announcements` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `announcements`
---
-
-INSERT INTO `announcements` (`id`, `title`, `message`, `target_audience`, `status`, `start_at`, `expiry_at`, `created_at`, `updated_at`) VALUES
-(4, 'system maintenance', 'he system will be under maintenance for 2 hours.', 'all', 'active', '2026-04-02 00:16:54', '2026-04-02 01:16:54', '2026-04-02 07:16:54', '2026-04-02 07:16:54');
-
 -- --------------------------------------------------------
 
 --
@@ -72,9 +65,7 @@ CREATE TABLE `appointments` (
 --
 
 INSERT INTO `appointments` (`id`, `patient_id`, `doctor_id`, `appointment_date`, `symptoms`, `category_id`, `consultation_fee`, `shift_type`, `time_slot`, `patient_number`, `status`, `created_at`) VALUES
-(9, 7, 5, '2026-04-01 09:30:00', 'pain in this back bone', 3, 1200.00, 'Morning', NULL, 0, 'completed', '2026-04-01 07:18:59'),
-(12, 7, 5, '2026-04-03 09:00:00', 'pain in head bone', 3, 1200.00, 'Morning', NULL, 0, 'cancelled', '2026-04-01 10:44:07'),
-(14, 9, 6, '2026-04-02 16:00:00', 'pain in head', 3, 1300.00, 'Evening', NULL, 0, 'cancelled', '2026-04-02 06:40:12');
+(1, 1, 34, '2026-04-02 14:00:00', '---', 17, 1100.00, 'Afternoon', NULL, 0, 'pending', '2026-04-02 10:01:23');
 
 -- --------------------------------------------------------
 
@@ -97,26 +88,26 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `name`, `description`, `icon`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'Cardiologist', 'Heart and cardiovascular diseases specialist', 'fa-heartbeat', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(2, 'Neurologist', 'Brain, nerves and nervous system disorders specialist', 'fa-brain', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(3, 'Ophthalmologist', 'Eye diseases and vision problems specialist', 'fa-eye', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(4, 'ENT Specialist', 'Ear, nose and throat diseases specialist', 'fa-ear-deaf', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(5, 'Dermatologist', 'Skin, hair and nail disorders specialist', 'fa-hand-sparkles', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(6, 'Pulmonologist', 'Lung and respiratory diseases specialist', 'fa-lungs', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(7, 'Gastroenterologist', 'Digestive system disorders specialist', 'fa-stomach', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(8, 'Orthopedic Surgeon', 'Bone, joint and muscle disorders specialist', 'fa-bone', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(9, 'Endocrinologist', 'Hormone and metabolic disorders specialist', 'fa-droplet', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(10, 'Infectious Disease Specialist', 'Fever and infectious diseases specialist', 'fa-virus', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(11, 'Pediatrician', 'Child health and diseases specialist', 'fa-child', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(12, 'Psychiatrist', 'Mental health disorders specialist', 'fa-brain', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(13, 'Nephrologist', 'Kidney diseases specialist', 'fa-filter', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(14, 'Urologist', 'Urinary tract and male reproductive system specialist', 'fa-bladder', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(15, 'Gynecologist', 'Women reproductive health specialist', 'fa-female', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(16, 'Rheumatologist', 'Joint and autoimmune diseases specialist', 'fa-hand-holding-heart', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(17, 'Allergy Specialist', 'Allergies and immune system disorders specialist', 'fa-allergies', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(18, 'Hematologist', 'Blood disorders specialist', 'fa-tint', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(19, 'Oncologist', 'Cancer and tumors specialist', 'fa-ribbon', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
-(20, 'Geriatrician', 'Elderly health care specialist', 'fa-user-clock', 'active', '2026-04-01 05:50:08', '2026-04-01 05:50:08'),
+(1, 'Heart', 'Heart and cardiovascular diseases specialist', 'fa-heartbeat', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(2, 'Brain', 'Brain, nerves and nervous system disorders specialist', 'fa-brain', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(3, 'Eye', 'Eye diseases and vision problems specialist', 'fa-eye', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(4, 'ENT', 'Ear, nose and throat diseases specialist', 'fa-ear-deaf', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(5, 'Skin', 'Skin, hair and nail disorders specialist', 'fa-hand-sparkles', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(6, 'Lungs', 'Lung and respiratory diseases specialist', 'fa-lungs', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(7, 'Stomach', 'Digestive system disorders specialist', 'fa-stomach', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(8, 'Bones', 'Bone, joint and muscle disorders specialist', 'fa-bone', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(9, 'Hormones', 'Hormone and metabolic disorders specialist', 'fa-droplet', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(10, 'Infection', 'Fever and infectious diseases specialist', 'fa-virus', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(11, 'Child Health', 'Child health and diseases specialist', 'fa-child', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(12, 'Mental Health', 'Mental health disorders specialist', 'fa-brain', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(13, 'Kidney', 'Kidney diseases specialist', 'fa-filter', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(14, 'Urinary', 'Urinary tract and male reproductive system specialist', 'fa-bladder', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(15, 'Women Health', 'Women reproductive health specialist', 'fa-female', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(16, 'Joint Pain', 'Joint and autoimmune diseases specialist', 'fa-hand-holding-heart', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(17, 'Allergy', 'Allergies and immune system disorders specialist', 'fa-allergies', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(18, 'Blood', 'Blood disorders specialist', 'fa-tint', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(19, 'Cancer', 'Cancer and tumors specialist', 'fa-ribbon', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
+(20, 'Elderly', 'Elderly health care specialist', 'fa-user-clock', 'active', '2026-04-01 05:50:08', '2026-04-02 09:55:03'),
 (21, 'test', 'test', 'fa-stethoscope', 'active', '2026-04-01 11:38:34', '2026-04-01 11:38:34'),
 (22, 'Test1', '--', 'fa-stethoscope', 'active', '2026-04-01 11:52:13', '2026-04-01 11:52:13');
 
@@ -353,6 +344,8 @@ CREATE TABLE `patients` (
   `id` int(11) NOT NULL,
   `name` varchar(100) DEFAULT NULL,
   `age` int(11) DEFAULT NULL,
+  `weight` decimal(5,2) DEFAULT NULL,
+  `disease` int(11) DEFAULT NULL,
   `gender` enum('male','female','other') DEFAULT NULL,
   `phone` varchar(20) DEFAULT NULL,
   `address` text DEFAULT NULL,
@@ -365,10 +358,8 @@ CREATE TABLE `patients` (
 -- Dumping data for table `patients`
 --
 
-INSERT INTO `patients` (`id`, `name`, `age`, `gender`, `phone`, `address`, `blood_group`, `status`, `created_at`) VALUES
-(7, 'Izhan Sajid', 22, 'male', '03214785693', 'Billi tang', 'AB-', 'active', '2026-04-01 07:03:36'),
-(8, 'panda zahid', 38, 'male', '0127568924', 'KOHAT', 'B+', 'active', '2026-04-01 10:30:23'),
-(9, 'Salman ', 22, 'male', '5635657678', 'Peshwar', 'O-', 'active', '2026-04-02 06:39:50');
+INSERT INTO `patients` (`id`, `name`, `age`, `weight`, `disease`, `gender`, `phone`, `address`, `blood_group`, `status`, `created_at`) VALUES
+(1, 'Izhan Sajid', 28, 60.00, 17, 'male', '03214785693', 'Kohat', 'O+', 'active', '2026-04-02 09:56:43');
 
 -- --------------------------------------------------------
 
@@ -395,9 +386,7 @@ CREATE TABLE `payments` (
 --
 
 INSERT INTO `payments` (`id`, `appointment_id`, `patient_id`, `doctor_id`, `amount`, `payment_method`, `status`, `transaction_id`, `payment_date`, `notes`, `created_at`) VALUES
-(6, 9, 7, 5, 1200.00, 'cash', 'completed', '', '2026-04-01 09:19:11', '--', '2026-04-01 07:19:11'),
-(8, 12, 7, 5, 1200.00, 'cash', 'refunded', '', '2026-04-01 12:44:24', '', '2026-04-01 10:44:24'),
-(10, 14, 9, 6, 1300.00, 'cash', 'refunded', '', '2026-04-02 08:40:14', '', '2026-04-02 06:40:14');
+(11, 1, 1, 34, 1100.00, 'cash', 'completed', '', '2026-04-02 12:11:28', '--', '2026-04-02 10:11:28');
 
 -- --------------------------------------------------------
 
@@ -413,14 +402,6 @@ CREATE TABLE `prescriptions` (
   `duration` varchar(100) DEFAULT NULL,
   `notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `prescriptions`
---
-
-INSERT INTO `prescriptions` (`id`, `record_id`, `medicine_name`, `dosage`, `duration`, `notes`) VALUES
-(3, 3, 'Acetaminophen (Tylenol),', '5mg', '3 days ', '--'),
-(4, 3, 'NSAIDs ', '5mg', '3 days ', '--');
 
 -- --------------------------------------------------------
 
@@ -438,13 +419,6 @@ CREATE TABLE `records` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `records`
---
-
-INSERT INTO `records` (`id`, `patient_id`, `doctor_id`, `visit_date`, `symptoms`, `diagnosis`, `notes`, `created_at`) VALUES
-(3, 7, 5, '2026-04-01 09:54:40', 'Muscular Ache/Stiffness: A dull, aching pain or stiffness in the lower back or spine, often worsening with bending, lifting, or prolonged sitting.\\r\\nRadiating Pain: Pain that shoots or radiates down the legs, sometimes accompanied by tingling, numbness, or weakness, which may indicate nerve issues.\\r\\nMuscle Spasms: Intense muscle spasms or contractions in the back, making it difficult to move, walk, or stand straight.\\r\\nReduced Range of Motion: Difficulty moving or straightening the back, frequently causing a “crooked” or bent posture.\\r\\nPain that Changes with Activity: Pain that feels worse when standing, walking, or sitting for long periods, but may improve with rest or gentle movement. ', 'NSAIDs ', '', '2026-04-01 07:54:40');
 
 -- --------------------------------------------------------
 
@@ -487,26 +461,7 @@ CREATE TABLE `staff` (
 --
 
 INSERT INTO `staff` (`id`, `user_id`, `category_id`, `position`, `shift`, `address`, `created_at`) VALUES
-(4, 43, NULL, 'Receptionist', 'Morning', 'Cardiology Department, 1st Floor', '2026-04-01 06:07:59'),
-(5, 44, NULL, 'Receptionist', 'Morning', 'Neurology Department, 2nd Floor', '2026-04-01 06:07:59'),
-(6, 45, NULL, 'Receptionist', 'Morning', 'Ophthalmology Department, 1st Floor', '2026-04-01 06:07:59'),
-(7, 46, NULL, 'Receptionist', 'Afternoon', 'ENT Department, 2nd Floor', '2026-04-01 06:07:59'),
-(8, 47, NULL, 'Receptionist', 'Morning', 'Dermatology Department, 3rd Floor', '2026-04-01 06:07:59'),
-(9, 48, NULL, 'Receptionist', 'Morning', 'Pulmonology Department, 2nd Floor', '2026-04-01 06:07:59'),
-(10, 49, NULL, 'Receptionist', 'Afternoon', 'Gastroenterology Department, 1st Floor', '2026-04-01 06:07:59'),
-(11, 50, NULL, 'Receptionist', 'Morning', 'Orthopedic Department, 3rd Floor', '2026-04-01 06:07:59'),
-(12, 51, NULL, 'Receptionist', 'Morning', 'Endocrinology Department, 2nd Floor', '2026-04-01 06:07:59'),
-(13, 52, NULL, 'Receptionist', 'Afternoon', 'Infectious Disease Department, 1st Floor', '2026-04-01 06:07:59'),
-(14, 53, NULL, 'Receptionist', 'Morning', 'Pediatric Department, Ground Floor', '2026-04-01 06:07:59'),
-(15, 54, NULL, 'Receptionist', 'Morning', 'Psychiatry Department, 4th Floor', '2026-04-01 06:07:59'),
-(16, 55, NULL, 'Receptionist', 'Afternoon', 'Nephrology Department, 2nd Floor', '2026-04-01 06:07:59'),
-(17, 56, NULL, 'Receptionist', 'Morning', 'Urology Department, 3rd Floor', '2026-04-01 06:07:59'),
-(18, 57, NULL, 'Receptionist', 'Morning', 'Gynecology Department, 1st Floor', '2026-04-01 06:07:59'),
-(19, 58, NULL, 'Receptionist', 'Afternoon', 'Rheumatology Department, 2nd Floor', '2026-04-01 06:07:59'),
-(20, 59, NULL, 'Receptionist', 'Morning', 'Allergy Department, 3rd Floor', '2026-04-01 06:07:59'),
-(21, 60, NULL, 'Receptionist', 'Morning', 'Hematology Department, 2nd Floor', '2026-04-01 06:07:59'),
-(22, 61, NULL, 'Receptionist', 'Afternoon', 'Oncology Department, 4th Floor', '2026-04-01 06:07:59'),
-(23, 62, NULL, 'Receptionist', 'Morning', 'Geriatric Department, 1st Floor', '2026-04-01 06:07:59');
+(1, 65, NULL, 'Receptionist', 'Morning', 'Main Reception Desk', '2026-04-02 09:27:52');
 
 -- --------------------------------------------------------
 
@@ -532,7 +487,6 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `role_id`, `name`, `email`, `phone`, `password`, `status`, `created_at`, `updated_at`) VALUES
 (1, 1, 'Admin User', 'admin@prms.com', '03000000001', '123456', 'active', '2026-04-01 05:49:22', '2026-04-01 05:49:22'),
-(2, 3, 'Reception User', 'reception@prms.com', '03000005599', '123456', 'active', '2026-04-01 05:49:22', '2026-04-01 05:49:22'),
 (3, 2, 'Dr. Ahmed Hassan', 'ahmed.hassan@prms.com', '03001111001', '123456', 'active', '2026-04-01 05:50:57', '2026-04-01 05:50:57'),
 (4, 2, 'Dr. Fatima Khalid', 'fatima.khalid@prms.com', '03001111002', '123456', 'active', '2026-04-01 05:50:57', '2026-04-01 05:50:57'),
 (5, 2, 'Dr. Omar Farooq', 'omar.farooq@prms.com', '03001111003', '123456', 'active', '2026-04-01 05:50:57', '2026-04-01 05:50:57'),
@@ -573,28 +527,10 @@ INSERT INTO `users` (`id`, `role_id`, `name`, `email`, `phone`, `password`, `sta
 (40, 2, 'Dr. Uzma Asif', 'uzma.asif@prms.com', '03001111038', '123456', 'active', '2026-04-01 05:50:57', '2026-04-01 05:50:57'),
 (41, 2, 'Dr. Kamran Bhatti', 'kamran.bhatti@prms.com', '03001111039', '123456', 'active', '2026-04-01 05:50:57', '2026-04-01 05:50:57'),
 (42, 2, 'Dr. Bushra Anwar', 'bushra.anwar@prms.com', '03001111040', '123456', 'active', '2026-04-01 05:50:57', '2026-04-01 05:50:57'),
-(43, 3, 'Receptionist Sarah', 'reception.cardiologist@prms.com', '03001111041', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(44, 3, 'Receptionist Ahmed', 'reception.neurologist@prms.com', '03001111042', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(45, 3, 'Receptionist Fatima', 'reception.ophthalmologist@prms.com', '03001111043', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(46, 3, 'Receptionist Omar', 'reception.ent@prms.com', '03001111044', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(47, 3, 'Receptionist Ayesha', 'reception.dermatologist@prms.com', '03001111045', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(48, 3, 'Receptionist Bilal', 'reception.pulmonologist@prms.com', '03001111046', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(49, 3, 'Receptionist Zara', 'reception.gastroenterologist@prms.com', '03001111047', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(50, 3, 'Receptionist Hassan', 'reception.orthopedic@prms.com', '03001111048', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(51, 3, 'Receptionist Nadia', 'reception.endocrinologist@prms.com', '03001111049', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(52, 3, 'Receptionist Rashid', 'reception.infectious@prms.com', '03001111050', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(53, 3, 'Receptionist Sana', 'reception.pediatrician@prms.com', '03001111051', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(54, 3, 'Receptionist Tariq', 'reception.psychiatrist@prms.com', '03001111052', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(55, 3, 'Receptionist Fariha', 'reception.nephrologist@prms.com', '03001111053', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(56, 3, 'Receptionist Asad', 'reception.urologist@prms.com', '03001111054', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(57, 3, 'Receptionist Mariam', 'reception.gynecologist@prms.com', '03001111055', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(58, 3, 'Receptionist Naveed', 'reception.rheumatologist@prms.com', '03001111056', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(59, 3, 'Receptionist Saima', 'reception.allergy@prms.com', '03001111057', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(60, 3, 'Receptionist Imran', 'reception.hematologist@prms.com', '03001111058', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(61, 3, 'Receptionist Rabia', 'reception.oncologist@prms.com', '03001111059', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
-(62, 3, 'Receptionist Shahid', 'reception.geriatrician@prms.com', '03001111060', '123456', 'active', '2026-04-01 06:07:32', '2026-04-01 06:07:32'),
 (63, 2, 'test test', 'test@gmail.com', '03214785693', '123', 'active', '2026-04-01 11:39:00', NULL),
-(64, 2, 'Test1', 'test2@gmail.com', '03214785693', '123', 'active', '2026-04-01 11:52:51', NULL);
+(64, 2, 'Test1', 'test2@gmail.com', '03214785693', '123', 'active', '2026-04-01 11:52:51', NULL),
+(65, 3, 'Receptionist Ali', 'reception1@gmail.com', '03001234567', '123456', 'active', '2026-04-02 09:26:04', '2026-04-02 09:26:04'),
+(66, 3, 'Receptionist Evening', 'reception2@gmail.com', '03009998877', '123456', 'active', '2026-04-02 09:30:52', '2026-04-02 09:30:52');
 
 --
 -- Indexes for dumped tables
@@ -700,7 +636,7 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -724,25 +660,25 @@ ALTER TABLE `doctor_schedules`
 -- AUTO_INCREMENT for table `patients`
 --
 ALTER TABLE `patients`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `prescriptions`
 --
 ALTER TABLE `prescriptions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `records`
 --
 ALTER TABLE `records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -754,13 +690,13 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `staff`
 --
 ALTER TABLE `staff`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
 
 --
 -- Constraints for dumped tables

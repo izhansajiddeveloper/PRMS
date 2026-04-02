@@ -358,7 +358,7 @@ include '../includes/sidebar.php';
                                     </td>
                                     <td class="px-3 py-2 text-sm text-gray-600">
                                         <?php echo $patient['age']; ?> yrs /
-                                        <span class="capitalize"><?php echo $patient['gender']; ?></span>
+                                        <span class="capitalize"><?php echo htmlspecialchars(!empty($patient['gender']) ? $patient['gender'] : 'Not specified'); ?></span>
                                     </td>
                                     <td class="px-3 py-2 text-sm text-gray-600"><?php echo $patient['phone']; ?></td>
                                     <td class="px-3 py-2">

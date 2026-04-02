@@ -11,72 +11,11 @@ $success = '';
 // Get the logged-in receptionist's user_id
 $receptionist_user_id = $_SESSION['user_id'];
 
-// Get the receptionist's assigned category from staff table
-$receptionist_query = "SELECT s.*, u.name as receptionist_name 
-                       FROM staff s 
-                       JOIN users u ON s.user_id = u.id 
-                       WHERE s.user_id = ?";
-$stmt = mysqli_prepare($conn, $receptionist_query);
-mysqli_stmt_bind_param($stmt, "i", $receptionist_user_id);
-mysqli_stmt_execute($stmt);
-$receptionist_result = mysqli_stmt_get_result($stmt);
-$receptionist = mysqli_fetch_assoc($receptionist_result);
-
-$assigned_category_id = 0;
-$assigned_category_name = '';
-
-if ($receptionist) {
-    if ($receptionist['category_id']) {
-        $assigned_category_id = $receptionist['category_id'];
-        $cat_query = "SELECT name FROM categories WHERE id = ?";
-        $cat_stmt = mysqli_prepare($conn, $cat_query);
-        mysqli_stmt_bind_param($cat_stmt, "i", $assigned_category_id);
-        mysqli_stmt_execute($cat_stmt);
-        $cat_res = mysqli_stmt_get_result($cat_stmt);
-        if ($cat_row = mysqli_fetch_assoc($cat_res)) {
-            $assigned_category_name = $cat_row['name'];
-        }
-    } else {
-        $department_name = '';
-        if (strpos($receptionist['address'], 'Cardiology') !== false) $department_name = 'Cardiologist';
-        elseif (strpos($receptionist['address'], 'Neurology') !== false) $department_name = 'Neurologist';
-        elseif (strpos($receptionist['address'], 'Ophthalmology') !== false) $department_name = 'Ophthalmologist';
-        elseif (strpos($receptionist['address'], 'ENT') !== false) $department_name = 'ENT Specialist';
-        elseif (strpos($receptionist['address'], 'Dermatology') !== false) $department_name = 'Dermatologist';
-        elseif (strpos($receptionist['address'], 'Pulmonology') !== false) $department_name = 'Pulmonologist';
-        elseif (strpos($receptionist['address'], 'Gastroenterology') !== false) $department_name = 'Gastroenterologist';
-        elseif (strpos($receptionist['address'], 'Orthopedic') !== false) $department_name = 'Orthopedic Surgeon';
-        elseif (strpos($receptionist['address'], 'Endocrinology') !== false) $department_name = 'Endocrinologist';
-        elseif (strpos($receptionist['address'], 'Infectious Disease') !== false) $department_name = 'Infectious Disease Specialist';
-        elseif (strpos($receptionist['address'], 'Pediatric') !== false) $department_name = 'Pediatrician';
-        elseif (strpos($receptionist['address'], 'Psychiatry') !== false) $department_name = 'Psychiatrist';
-        elseif (strpos($receptionist['address'], 'Nephrology') !== false) $department_name = 'Nephrologist';
-        elseif (strpos($receptionist['address'], 'Urology') !== false) $department_name = 'Urologist';
-        elseif (strpos($receptionist['address'], 'Gynecology') !== false) $department_name = 'Gynecologist';
-        elseif (strpos($receptionist['address'], 'Rheumatology') !== false) $department_name = 'Rheumatologist';
-        elseif (strpos($receptionist['address'], 'Allergy') !== false) $department_name = 'Allergy Specialist';
-        elseif (strpos($receptionist['address'], 'Hematology') !== false) $department_name = 'Hematologist';
-        elseif (strpos($receptionist['address'], 'Oncology') !== false) $department_name = 'Oncologist';
-        elseif (strpos($receptionist['address'], 'Geriatric') !== false) $department_name = 'Geriatrician';
-
-        if ($department_name) {
-            $category_query = "SELECT id, name FROM categories WHERE name = ? LIMIT 1";
-            $stmt = mysqli_prepare($conn, $category_query);
-            mysqli_stmt_bind_param($stmt, "s", $department_name);
-            mysqli_stmt_execute($stmt);
-            $category_result = mysqli_stmt_get_result($stmt);
-            $category = mysqli_fetch_assoc($category_result);
-            if ($category) {
-                $assigned_category_id = $category['id'];
-                $assigned_category_name = $category['name'];
-            }
-        }
-    }
-}
+// No category restrictions needed for global receptionists.
 
 // Search functionality
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-$where_condition = "pay.id IS NULL AND a.status != 'cancelled' AND a.category_id = $assigned_category_id";
+$where_condition = "pay.id IS NULL AND a.status != 'cancelled'";
 if ($search) {
     $where_condition .= " AND (p.name LIKE '%$search%' OR u.name LIKE '%$search%' OR p.phone LIKE '%$search%') ";
 }

@@ -11,70 +11,18 @@ if (!$appointment_id) {
     exit();
 }
 
-// Get the logged-in receptionist's user_id
-$receptionist_user_id = $_SESSION['user_id'];
+// No category filtering for global receptionists.
 
-// Get the receptionist's assigned category from staff table
-$receptionist_query = "SELECT s.*, u.name as receptionist_name 
-                       FROM staff s 
-                       JOIN users u ON s.user_id = u.id 
-                       WHERE s.user_id = ?";
-$stmt = mysqli_prepare($conn, $receptionist_query);
-mysqli_stmt_bind_param($stmt, "i", $receptionist_user_id);
-mysqli_stmt_execute($stmt);
-$receptionist_result = mysqli_stmt_get_result($stmt);
-$receptionist = mysqli_fetch_assoc($receptionist_result);
-
-$assigned_category_id = 0;
-$assigned_category_name = '';
-
-if ($receptionist) {
-    $department_name = '';
-    if (strpos($receptionist['address'], 'Cardiology') !== false) $department_name = 'Cardiologist';
-    elseif (strpos($receptionist['address'], 'Neurology') !== false) $department_name = 'Neurologist';
-    elseif (strpos($receptionist['address'], 'Ophthalmology') !== false) $department_name = 'Ophthalmologist';
-    elseif (strpos($receptionist['address'], 'ENT') !== false) $department_name = 'ENT Specialist';
-    elseif (strpos($receptionist['address'], 'Dermatology') !== false) $department_name = 'Dermatologist';
-    elseif (strpos($receptionist['address'], 'Pulmonology') !== false) $department_name = 'Pulmonologist';
-    elseif (strpos($receptionist['address'], 'Gastroenterology') !== false) $department_name = 'Gastroenterologist';
-    elseif (strpos($receptionist['address'], 'Orthopedic') !== false) $department_name = 'Orthopedic Surgeon';
-    elseif (strpos($receptionist['address'], 'Endocrinology') !== false) $department_name = 'Endocrinologist';
-    elseif (strpos($receptionist['address'], 'Infectious Disease') !== false) $department_name = 'Infectious Disease Specialist';
-    elseif (strpos($receptionist['address'], 'Pediatric') !== false) $department_name = 'Pediatrician';
-    elseif (strpos($receptionist['address'], 'Psychiatry') !== false) $department_name = 'Psychiatrist';
-    elseif (strpos($receptionist['address'], 'Nephrology') !== false) $department_name = 'Nephrologist';
-    elseif (strpos($receptionist['address'], 'Urology') !== false) $department_name = 'Urologist';
-    elseif (strpos($receptionist['address'], 'Gynecology') !== false) $department_name = 'Gynecologist';
-    elseif (strpos($receptionist['address'], 'Rheumatology') !== false) $department_name = 'Rheumatologist';
-    elseif (strpos($receptionist['address'], 'Allergy') !== false) $department_name = 'Allergy Specialist';
-    elseif (strpos($receptionist['address'], 'Hematology') !== false) $department_name = 'Hematologist';
-    elseif (strpos($receptionist['address'], 'Oncology') !== false) $department_name = 'Oncologist';
-    elseif (strpos($receptionist['address'], 'Geriatric') !== false) $department_name = 'Geriatrician';
-
-    if ($department_name) {
-        $category_query = "SELECT id, name FROM categories WHERE name = ? LIMIT 1";
-        $stmt = mysqli_prepare($conn, $category_query);
-        mysqli_stmt_bind_param($stmt, "s", $department_name);
-        mysqli_stmt_execute($stmt);
-        $category_result = mysqli_stmt_get_result($stmt);
-        $category = mysqli_fetch_assoc($category_result);
-        if ($category) {
-            $assigned_category_id = $category['id'];
-            $assigned_category_name = $category['name'];
-        }
-    }
-}
-
-// Fetch appointment details - with department check
-$query = "SELECT a.*, p.name as patient_name, p.id as patient_id, u.name as doctor_name, pay.id as payment_id 
+// Fetch appointment details
+$query = "SELECT a.*, p.name as patient_name, p.id as patient_id, p.disease, u.name as doctor_name, pay.id as payment_id 
           FROM appointments a 
           JOIN patients p ON a.patient_id = p.id 
           JOIN doctors d ON a.doctor_id = d.id 
           JOIN users u ON d.user_id = u.id 
           LEFT JOIN payments pay ON pay.appointment_id = a.id
-          WHERE a.id = ? AND a.category_id = ?";
+          WHERE a.id = ?";
 $stmt = mysqli_prepare($conn, $query);
-mysqli_stmt_bind_param($stmt, "ii", $appointment_id, $assigned_category_id);
+mysqli_stmt_bind_param($stmt, "i", $appointment_id);
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $appointment = mysqli_fetch_assoc($result);
@@ -89,14 +37,15 @@ if (!$appointment) {
 $is_completed = ($appointment['status'] == 'completed');
 $is_cancelled = ($appointment['status'] == 'cancelled');
 
-// Get active doctors for THIS department only
+// Get active doctors for THIS appointment's category only
+$category_id = isset($appointment['category_id']) ? $appointment['category_id'] : $appointment['disease'];
 $doctors_query = "SELECT d.id, u.name, d.specialization 
                   FROM doctors d 
                   JOIN users u ON d.user_id = u.id 
                   WHERE u.status = 'active' AND d.category_id = ?
                   ORDER BY u.name";
 $stmt = mysqli_prepare($conn, $doctors_query);
-mysqli_stmt_bind_param($stmt, "i", $assigned_category_id);
+mysqli_stmt_bind_param($stmt, "i", $category_id);
 mysqli_stmt_execute($stmt);
 $doctors_result = mysqli_stmt_get_result($stmt);
 

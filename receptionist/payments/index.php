@@ -11,84 +11,22 @@ $success = '';
 // Get the logged-in receptionist's user_id
 $receptionist_user_id = $_SESSION['user_id'];
 
-// Get the receptionist's assigned category from staff table
-$receptionist_query = "SELECT s.*, u.name as receptionist_name 
-                       FROM staff s 
-                       JOIN users u ON s.user_id = u.id 
-                       WHERE s.user_id = ?";
-$stmt = mysqli_prepare($conn, $receptionist_query);
-mysqli_stmt_bind_param($stmt, "i", $receptionist_user_id);
-mysqli_stmt_execute($stmt);
-$receptionist_result = mysqli_stmt_get_result($stmt);
-$receptionist = mysqli_fetch_assoc($receptionist_result);
-
-$assigned_category_id = 0;
-$assigned_category_name = '';
-
-if ($receptionist) {
-    if ($receptionist['category_id']) {
-        $assigned_category_id = $receptionist['category_id'];
-        $cat_query = "SELECT name FROM categories WHERE id = ?";
-        $cat_stmt = mysqli_prepare($conn, $cat_query);
-        mysqli_stmt_bind_param($cat_stmt, "i", $assigned_category_id);
-        mysqli_stmt_execute($cat_stmt);
-        $cat_res = mysqli_stmt_get_result($cat_stmt);
-        if ($cat_row = mysqli_fetch_assoc($cat_res)) {
-            $assigned_category_name = $cat_row['name'];
-        }
-    } else {
-        // Fallback to address parsing if category_id is not set
-        $department_name = '';
-        if (strpos($receptionist['address'], 'Cardiology') !== false) $department_name = 'Cardiologist';
-        elseif (strpos($receptionist['address'], 'Neurology') !== false) $department_name = 'Neurologist';
-        elseif (strpos($receptionist['address'], 'Ophthalmology') !== false) $department_name = 'Ophthalmologist';
-        elseif (strpos($receptionist['address'], 'ENT') !== false) $department_name = 'ENT Specialist';
-        elseif (strpos($receptionist['address'], 'Dermatology') !== false) $department_name = 'Dermatologist';
-        elseif (strpos($receptionist['address'], 'Pulmonology') !== false) $department_name = 'Pulmonologist';
-        elseif (strpos($receptionist['address'], 'Gastroenterology') !== false) $department_name = 'Gastroenterologist';
-        elseif (strpos($receptionist['address'], 'Orthopedic') !== false) $department_name = 'Orthopedic Surgeon';
-        elseif (strpos($receptionist['address'], 'Endocrinology') !== false) $department_name = 'Endocrinologist';
-        elseif (strpos($receptionist['address'], 'Infectious Disease') !== false) $department_name = 'Infectious Disease Specialist';
-        elseif (strpos($receptionist['address'], 'Pediatric') !== false) $department_name = 'Pediatrician';
-        elseif (strpos($receptionist['address'], 'Psychiatry') !== false) $department_name = 'Psychiatrist';
-        elseif (strpos($receptionist['address'], 'Nephrology') !== false) $department_name = 'Nephrologist';
-        elseif (strpos($receptionist['address'], 'Urology') !== false) $department_name = 'Urologist';
-        elseif (strpos($receptionist['address'], 'Gynecology') !== false) $department_name = 'Gynecologist';
-        elseif (strpos($receptionist['address'], 'Rheumatology') !== false) $department_name = 'Rheumatologist';
-        elseif (strpos($receptionist['address'], 'Allergy') !== false) $department_name = 'Allergy Specialist';
-        elseif (strpos($receptionist['address'], 'Hematology') !== false) $department_name = 'Hematologist';
-        elseif (strpos($receptionist['address'], 'Oncology') !== false) $department_name = 'Oncologist';
-        elseif (strpos($receptionist['address'], 'Geriatric') !== false) $department_name = 'Geriatrician';
-
-        if ($department_name) {
-            $category_query = "SELECT id, name FROM categories WHERE name = ? LIMIT 1";
-            $stmt = mysqli_prepare($conn, $category_query);
-            mysqli_stmt_bind_param($stmt, "s", $department_name);
-            mysqli_stmt_execute($stmt);
-            $category_result = mysqli_stmt_get_result($stmt);
-            $category = mysqli_fetch_assoc($category_result);
-            if ($category) {
-                $assigned_category_id = $category['id'];
-                $assigned_category_name = $category['name'];
-            }
-        }
-    }
-}
+// No category restrictions needed for global receptionists.
 
 // Handle Delete Payment
 if (isset($_GET['delete'])) {
     $payment_id = intval($_GET['delete']);
 
-    // Check if payment belongs to receptionist department
-    $check_query = "SELECT a.category_id FROM payments pay JOIN appointments a ON pay.appointment_id = a.id WHERE pay.id = ?";
+    // Check if payment exists
+    $check_query = "SELECT id FROM payments WHERE id = ?";
     $stmt = mysqli_prepare($conn, $check_query);
     mysqli_stmt_bind_param($stmt, "i", $payment_id);
     mysqli_stmt_execute($stmt);
     $check_result = mysqli_stmt_get_result($stmt);
     $payment_check = mysqli_fetch_assoc($check_result);
 
-    if (!$payment_check || $payment_check['category_id'] != $assigned_category_id) {
-        setFlashMessage("Unauthorized access!", "error");
+    if (!$payment_check) {
+        setFlashMessage("Payment not found!", "error");
     } else {
         $delete_query = "DELETE FROM payments WHERE id = ?";
         $stmt = mysqli_prepare($conn, $delete_query);
@@ -106,7 +44,7 @@ if (isset($_GET['delete'])) {
 
 // Search functionality
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-$where_clauses = ["a.category_id = $assigned_category_id"];
+$where_clauses = ["1=1"];
 if ($search) {
     $where_clauses[] = "(p.name LIKE '%$search%' OR u.name LIKE '%$search%' OR pay.transaction_id LIKE '%$search%')";
 }
@@ -134,9 +72,9 @@ include '../../includes/sidebar.php';
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">
-                    <span class="text-blue-600"><?php echo htmlspecialchars($assigned_category_name); ?></span> Payment Collection
+                    <span class="text-blue-600">All</span> Payment Collection
                 </h1>
-                <p class="text-gray-600 mt-1">Manage and track all patient consultation fees for your department</p>
+                <p class="text-gray-600 mt-1">Manage and track all patient consultation fees</p>
             </div>
 
             <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">

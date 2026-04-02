@@ -19,60 +19,22 @@ mysqli_stmt_execute($stmt);
 $receptionist_result = mysqli_stmt_get_result($stmt);
 $receptionist = mysqli_fetch_assoc($receptionist_result);
 
-$assigned_category_id = 0;
-$assigned_category_name = '';
-
-if ($receptionist) {
-    $department_name = '';
-    if (strpos($receptionist['address'], 'Cardiology') !== false) $department_name = 'Cardiologist';
-    elseif (strpos($receptionist['address'], 'Neurology') !== false) $department_name = 'Neurologist';
-    elseif (strpos($receptionist['address'], 'Ophthalmology') !== false) $department_name = 'Ophthalmologist';
-    elseif (strpos($receptionist['address'], 'ENT') !== false) $department_name = 'ENT Specialist';
-    elseif (strpos($receptionist['address'], 'Dermatology') !== false) $department_name = 'Dermatologist';
-    elseif (strpos($receptionist['address'], 'Pulmonology') !== false) $department_name = 'Pulmonologist';
-    elseif (strpos($receptionist['address'], 'Gastroenterology') !== false) $department_name = 'Gastroenterologist';
-    elseif (strpos($receptionist['address'], 'Orthopedic') !== false) $department_name = 'Orthopedic Surgeon';
-    elseif (strpos($receptionist['address'], 'Endocrinology') !== false) $department_name = 'Endocrinologist';
-    elseif (strpos($receptionist['address'], 'Infectious Disease') !== false) $department_name = 'Infectious Disease Specialist';
-    elseif (strpos($receptionist['address'], 'Pediatric') !== false) $department_name = 'Pediatrician';
-    elseif (strpos($receptionist['address'], 'Psychiatry') !== false) $department_name = 'Psychiatrist';
-    elseif (strpos($receptionist['address'], 'Nephrology') !== false) $department_name = 'Nephrologist';
-    elseif (strpos($receptionist['address'], 'Urology') !== false) $department_name = 'Urologist';
-    elseif (strpos($receptionist['address'], 'Gynecology') !== false) $department_name = 'Gynecologist';
-    elseif (strpos($receptionist['address'], 'Rheumatology') !== false) $department_name = 'Rheumatologist';
-    elseif (strpos($receptionist['address'], 'Allergy') !== false) $department_name = 'Allergy Specialist';
-    elseif (strpos($receptionist['address'], 'Hematology') !== false) $department_name = 'Hematologist';
-    elseif (strpos($receptionist['address'], 'Oncology') !== false) $department_name = 'Oncologist';
-    elseif (strpos($receptionist['address'], 'Geriatric') !== false) $department_name = 'Geriatrician';
-
-    if ($department_name) {
-        $category_query = "SELECT id, name FROM categories WHERE name = ? LIMIT 1";
-        $stmt = mysqli_prepare($conn, $category_query);
-        mysqli_stmt_bind_param($stmt, "s", $department_name);
-        mysqli_stmt_execute($stmt);
-        $category_result = mysqli_stmt_get_result($stmt);
-        $category = mysqli_fetch_assoc($category_result);
-        if ($category) {
-            $assigned_category_id = $category['id'];
-            $assigned_category_name = $category['name'];
-        }
-    }
-}
+// No category filtering needed for global receptionists.
 
 // Handle Delete
 if (isset($_GET['delete']) && isset($_GET['id'])) {
     $appointment_id = intval($_GET['delete']);
 
-    // Check if appointment is completed and belongs to receptionist department
-    $check_query = "SELECT status, category_id FROM appointments WHERE id = ?";
+    // Check if appointment is completed
+    $check_query = "SELECT status FROM appointments WHERE id = ?";
     $stmt = mysqli_prepare($conn, $check_query);
     mysqli_stmt_bind_param($stmt, "i", $appointment_id);
     mysqli_stmt_execute($stmt);
     $check_result = mysqli_stmt_get_result($stmt);
     $appointment_check = mysqli_fetch_assoc($check_result);
 
-    if (!$appointment_check || $appointment_check['category_id'] != $assigned_category_id) {
-        setFlashMessage("Unauthorized access!", "error");
+    if (!$appointment_check) {
+        setFlashMessage("Appointment not found!", "error");
     } elseif ($appointment_check['status'] == 'completed') {
         setFlashMessage("Cannot delete completed appointments!", "error");
     } else {
@@ -95,16 +57,16 @@ if (isset($_GET['delete']) && isset($_GET['id'])) {
 if (isset($_GET['cancel']) && isset($_GET['id'])) {
     $appointment_id = intval($_GET['cancel']);
 
-    // Check if belongs to receptionist department
-    $check_query = "SELECT category_id FROM appointments WHERE id = ?";
+    // Check if exists
+    $check_query = "SELECT id FROM appointments WHERE id = ?";
     $stmt = mysqli_prepare($conn, $check_query);
     mysqli_stmt_bind_param($stmt, "i", $appointment_id);
     mysqli_stmt_execute($stmt);
     $check_result = mysqli_stmt_get_result($stmt);
     $appointment_check = mysqli_fetch_assoc($check_result);
 
-    if (!$appointment_check || $appointment_check['category_id'] != $assigned_category_id) {
-        setFlashMessage("Unauthorized access!", "error");
+    if (!$appointment_check) {
+        setFlashMessage("Appointment not found!", "error");
     } else {
         mysqli_begin_transaction($conn);
         try {
@@ -137,7 +99,7 @@ $date_filter = isset($_GET['date']) ? mysqli_real_escape_string($conn, $_GET['da
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
 
 // Build query
-$where_clauses = ["a.category_id = $assigned_category_id"];
+$where_clauses = ["1=1"];
 if ($date_filter) {
     $where_clauses[] = "DATE(a.appointment_date) = '$date_filter'";
 }
@@ -165,25 +127,25 @@ $appointments_query = "SELECT a.*, p.name as patient_name, p.age, p.gender, p.ph
                         ORDER BY a.appointment_date DESC";
 $appointments_result = mysqli_query($conn, $appointments_query);
 
-// Get statistics for this department only
+// Get statistics for all departments
 $today_date = date('Y-m-d');
-$total_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id";
+$total_query = "SELECT COUNT(*) as total FROM appointments";
 $total_result = mysqli_query($conn, $total_query);
 $total_appointments = mysqli_fetch_assoc($total_result)['total'];
 
-$today_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id AND DATE(appointment_date) = '$today_date'";
+$today_query = "SELECT COUNT(*) as total FROM appointments WHERE DATE(appointment_date) = '$today_date'";
 $today_result = mysqli_query($conn, $today_query);
 $today_appointments = mysqli_fetch_assoc($today_result)['total'];
 
-$pending_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id AND status = 'pending'";
+$pending_query = "SELECT COUNT(*) as total FROM appointments WHERE status = 'pending'";
 $pending_result = mysqli_query($conn, $pending_query);
 $pending_appointments = mysqli_fetch_assoc($pending_result)['total'];
 
-$completed_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id AND status = 'completed'";
+$completed_query = "SELECT COUNT(*) as total FROM appointments WHERE status = 'completed'";
 $completed_result = mysqli_query($conn, $completed_query);
 $completed_appointments = mysqli_fetch_assoc($completed_result)['total'];
 
-$cancelled_query = "SELECT COUNT(*) as total FROM appointments WHERE category_id = $assigned_category_id AND status = 'cancelled'";
+$cancelled_query = "SELECT COUNT(*) as total FROM appointments WHERE status = 'cancelled'";
 $cancelled_result = mysqli_query($conn, $cancelled_query);
 $cancelled_appointments = mysqli_fetch_assoc($cancelled_result)['total'];
 
@@ -198,11 +160,11 @@ include '../../includes/sidebar.php';
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">
-                    <span class="text-blue-600"><?php echo htmlspecialchars($assigned_category_name); ?></span> Appointments
+                    <span class="text-blue-600">All</span> Appointments
                 </h1>
                 <p class="text-gray-600 mt-1 text-sm italic">
                     <i class="fas fa-building mr-1"></i>
-                    Displaying only <?php echo htmlspecialchars($assigned_category_name); ?> department data
+                    Displaying all departments data
                 </p>
             </div>
             <a href="create.php" class="bg-gradient-to-r from-blue-500 to-green-500 text-white px-5 py-2 rounded-lg hover:shadow-lg transition">
@@ -325,7 +287,7 @@ include '../../includes/sidebar.php';
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-4 text-sm text-gray-800">
                                         <div class="font-bold">#<?php echo $appointment['id']; ?></div>
-                                        <div class="text-[10px] text-blue-600 uppercase font-bold mt-1">Token: <?php echo str_pad($appointment['patient_number'], 2, '0', STR_PAD_LEFT); ?></div>
+                                        <div class="text-[10px] text-blue-600 uppercase font-bold mt-1">Token: <?php echo str_pad(max(1, (int)$appointment['patient_number']), 2, '0', STR_PAD_LEFT); ?></div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center">

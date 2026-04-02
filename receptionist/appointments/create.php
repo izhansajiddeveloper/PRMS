@@ -24,87 +24,33 @@ if (!$receptionist) {
     $error = "Your account is not properly configured. Please contact admin.";
 }
 
-// Get the category assigned to this receptionist (based on position/address)
-// Assuming the position contains the category name or we can map it
-// For now, we'll get the category based on the receptionist's department from address
-$assigned_category_id = 0;
-if ($receptionist) {
-    // Extract department from address (e.g., "Cardiology Department, 1st Floor")
-    $department_name = '';
-    if (strpos($receptionist['address'], 'Cardiology') !== false) {
-        $department_name = 'Cardiologist';
-    } elseif (strpos($receptionist['address'], 'Neurology') !== false) {
-        $department_name = 'Neurologist';
-    } elseif (strpos($receptionist['address'], 'Ophthalmology') !== false) {
-        $department_name = 'Ophthalmologist';
-    } elseif (strpos($receptionist['address'], 'ENT') !== false) {
-        $department_name = 'ENT Specialist';
-    } elseif (strpos($receptionist['address'], 'Dermatology') !== false) {
-        $department_name = 'Dermatologist';
-    } elseif (strpos($receptionist['address'], 'Pulmonology') !== false) {
-        $department_name = 'Pulmonologist';
-    } elseif (strpos($receptionist['address'], 'Gastroenterology') !== false) {
-        $department_name = 'Gastroenterologist';
-    } elseif (strpos($receptionist['address'], 'Orthopedic') !== false) {
-        $department_name = 'Orthopedic Surgeon';
-    } elseif (strpos($receptionist['address'], 'Endocrinology') !== false) {
-        $department_name = 'Endocrinologist';
-    } elseif (strpos($receptionist['address'], 'Infectious Disease') !== false) {
-        $department_name = 'Infectious Disease Specialist';
-    } elseif (strpos($receptionist['address'], 'Pediatric') !== false) {
-        $department_name = 'Pediatrician';
-    } elseif (strpos($receptionist['address'], 'Psychiatry') !== false) {
-        $department_name = 'Psychiatrist';
-    } elseif (strpos($receptionist['address'], 'Nephrology') !== false) {
-        $department_name = 'Nephrologist';
-    } elseif (strpos($receptionist['address'], 'Urology') !== false) {
-        $department_name = 'Urologist';
-    } elseif (strpos($receptionist['address'], 'Gynecology') !== false) {
-        $department_name = 'Gynecologist';
-    } elseif (strpos($receptionist['address'], 'Rheumatology') !== false) {
-        $department_name = 'Rheumatologist';
-    } elseif (strpos($receptionist['address'], 'Allergy') !== false) {
-        $department_name = 'Allergy Specialist';
-    } elseif (strpos($receptionist['address'], 'Hematology') !== false) {
-        $department_name = 'Hematologist';
-    } elseif (strpos($receptionist['address'], 'Oncology') !== false) {
-        $department_name = 'Oncologist';
-    } elseif (strpos($receptionist['address'], 'Geriatric') !== false) {
-        $department_name = 'Geriatrician';
-    }
-
-    // Get category ID from category name
-    if ($department_name) {
-        $category_query = "SELECT id FROM categories WHERE name = ? LIMIT 1";
-        $stmt = mysqli_prepare($conn, $category_query);
-        mysqli_stmt_bind_param($stmt, "s", $department_name);
-        mysqli_stmt_execute($stmt);
-        $category_result = mysqli_stmt_get_result($stmt);
-        $category = mysqli_fetch_assoc($category_result);
-        if ($category) {
-            $assigned_category_id = $category['id'];
-        }
-    }
-}
-
 $error = '';
 $success = '';
 $selected_patient_id = isset($_GET['patient_id']) ? intval($_GET['patient_id']) : 0;
 $selected_doctor_id = 0;
 $doctor_schedule = [];
+$assigned_category_id = 0;
 
-// Get all active patients (only those WITHOUT pending appointments)
-$patients_query = "SELECT p.id, p.name, p.age, p.gender, p.phone, p.address 
-                   FROM patients p 
-                   WHERE p.status = 'active' 
-                   AND NOT EXISTS (
-                       SELECT 1 FROM appointments a 
-                       WHERE a.patient_id = p.id 
-                       AND a.status = 'pending' 
-                       AND a.appointment_date > NOW()
-                   )
-                   ORDER BY p.name";
-$patients_result = mysqli_query($conn, $patients_query);
+if (isset($_POST['select_doctor']) || isset($_POST['book_appointment'])) {
+    if (isset($_POST['patient_id'])) {
+        $selected_patient_id = intval($_POST['patient_id']);
+    }
+}
+
+// Get the details and category assigned to this patient based on their recorded disease
+$selected_patient_details = null;
+if ($selected_patient_id > 0) {
+    $patient_details_query = "SELECT * FROM patients WHERE id = ? LIMIT 1";
+    $stmt = mysqli_prepare($conn, $patient_details_query);
+    mysqli_stmt_bind_param($stmt, "i", $selected_patient_id);
+    mysqli_stmt_execute($stmt);
+    $patient_details_result = mysqli_stmt_get_result($stmt);
+    $selected_patient_details = mysqli_fetch_assoc($patient_details_result);
+    
+    if ($selected_patient_details && $selected_patient_details['disease'] > 0) {
+        $assigned_category_id = intval($selected_patient_details['disease']);
+    }
+}
 
 // Get doctors for the assigned category only
 if ($assigned_category_id > 0) {
@@ -137,7 +83,6 @@ if ($assigned_category_id > 0) {
 // Handle doctor selection
 if (isset($_POST['select_doctor']) && isset($_POST['doctor_id'])) {
     $selected_doctor_id = intval($_POST['doctor_id']);
-    $selected_patient_id = intval($_POST['patient_id']);
 }
 
 // Get doctor schedule for selected doctor
@@ -282,31 +227,36 @@ include '../../includes/sidebar.php';
         <?php else: ?>
 
             <div class="max-w-4xl mx-auto">
-                <!-- Step 1: Patient Selection -->
+                <!-- Step 1: Selected Patient Details (Readonly) -->
                 <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                     <div class="flex items-center mb-4">
                         <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3">1</div>
-                        <h2 class="text-lg font-semibold text-gray-800">Select Patient</h2>
+                        <h2 class="text-lg font-semibold text-gray-800">Selected Patient</h2>
                     </div>
-                    <form method="GET" action="" id="patientForm">
-                        <select name="patient_id" id="patient_id" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                            onchange="this.form.submit()">
-                            <option value="">-- Select Patient --</option>
-                            <?php
-                            mysqli_data_seek($patients_result, 0);
-                            while ($patient = mysqli_fetch_assoc($patients_result)): ?>
-                                <option value="<?php echo $patient['id']; ?>" <?php echo ($selected_patient_id == $patient['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($patient['name']); ?> (<?php echo $patient['age']; ?> yrs, <?php echo ucfirst($patient['gender']); ?>) - <?php echo $patient['phone']; ?>
-                                </option>
-                            <?php endwhile; ?>
-                        </select>
-                    </form>
-                    <?php if (mysqli_num_rows($patients_result) == 0): ?>
-                        <p class="text-sm text-yellow-600 mt-2">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            No patients available. All patients have pending appointments or are inactive.
-                        </p>
+                    <?php if ($selected_patient_details): ?>
+                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold text-gray-800 text-lg"><?php echo htmlspecialchars($selected_patient_details['name']); ?></h3>
+                                <p class="text-sm text-gray-600 mt-1">
+                                    <i class="fas fa-venus-mars mr-1 text-gray-400"></i> <?php echo $selected_patient_details['age']; ?> yrs, <?php echo ucfirst($selected_patient_details['gender']); ?> | 
+                                    <i class="fas fa-phone mr-1 ml-2 text-gray-400"></i> <?php echo htmlspecialchars($selected_patient_details['phone']); ?> |
+                                    <i class="fas fa-weight mr-1 ml-2 text-gray-400"></i> <?php echo htmlspecialchars($selected_patient_details['weight']); ?> kg
+                                </p>
+                            </div>
+                            <a href="../patients.php" class="text-blue-600 hover:text-blue-800 text-sm font-semibold transition px-3 py-1 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center">
+                                Change <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <div class="p-4 bg-yellow-50 text-yellow-800 rounded-lg border border-yellow-200 flex items-center justify-between">
+                            <div>
+                                <i class="fas fa-exclamation-triangle mr-2 text-yellow-500 text-lg"></i>
+                                <span class="font-medium">No patient selected.</span> Please select a patient first to proceed with booking.
+                            </div>
+                            <a href="../patients.php" class="text-yellow-700 hover:text-yellow-900 text-sm font-semibold underline">
+                                Go to Patients
+                            </a>
+                        </div>
                     <?php endif; ?>
                 </div>
 
@@ -316,7 +266,7 @@ include '../../includes/sidebar.php';
                         <div class="flex items-center mb-4">
                             <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center mr-3">2</div>
                             <h2 class="text-lg font-semibold text-gray-800">Select Doctor - <?php echo htmlspecialchars($category_name); ?></h2>
-                            <span class="ml-3 text-sm text-gray-500">(Department assigned to you)</span>
+                            <span class="ml-3 text-sm text-gray-500">(Based on patient's disease)</span>
                         </div>
 
                         <?php if ($doctors_result && mysqli_num_rows($doctors_result) > 0): ?>
