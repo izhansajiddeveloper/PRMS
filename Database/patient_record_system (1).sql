@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 02, 2026 at 12:19 PM
+-- Generation Time: Apr 02, 2026 at 12:26 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -65,7 +65,8 @@ CREATE TABLE `appointments` (
 --
 
 INSERT INTO `appointments` (`id`, `patient_id`, `doctor_id`, `appointment_date`, `symptoms`, `category_id`, `consultation_fee`, `shift_type`, `time_slot`, `patient_number`, `status`, `created_at`) VALUES
-(1, 1, 34, '2026-04-02 14:00:00', '---', 17, 1100.00, 'Afternoon', NULL, 0, 'pending', '2026-04-02 10:01:23');
+(1, 1, 34, '2026-04-02 14:00:00', '---', 17, 1100.00, 'Afternoon', NULL, 0, 'pending', '2026-04-02 10:01:23'),
+(2, 2, 25, '2026-04-06 09:00:00', 'Pain in kidneys', 13, 1500.00, 'Morning', NULL, 0, 'cancelled', '2026-04-02 10:21:25');
 
 -- --------------------------------------------------------
 
@@ -359,7 +360,8 @@ CREATE TABLE `patients` (
 --
 
 INSERT INTO `patients` (`id`, `name`, `age`, `weight`, `disease`, `gender`, `phone`, `address`, `blood_group`, `status`, `created_at`) VALUES
-(1, 'Izhan Sajid', 28, 60.00, 17, 'male', '03214785693', 'Kohat', 'O+', 'active', '2026-04-02 09:56:43');
+(1, 'Izhan Sajid', 28, 60.00, 17, 'male', '03214785693', 'Kohat', 'O+', 'active', '2026-04-02 09:56:43'),
+(2, 'Sajid Mehmood', 22, 75.00, 13, 'male', '03177990549', 'Kohat', 'B+', 'active', '2026-04-02 10:20:30');
 
 -- --------------------------------------------------------
 
@@ -386,7 +388,8 @@ CREATE TABLE `payments` (
 --
 
 INSERT INTO `payments` (`id`, `appointment_id`, `patient_id`, `doctor_id`, `amount`, `payment_method`, `status`, `transaction_id`, `payment_date`, `notes`, `created_at`) VALUES
-(11, 1, 1, 34, 1100.00, 'cash', 'completed', '', '2026-04-02 12:11:28', '--', '2026-04-02 10:11:28');
+(11, 1, 1, 34, 1100.00, 'cash', 'completed', '', '2026-04-02 12:11:28', '--', '2026-04-02 10:11:28'),
+(12, 2, 2, 25, 1500.00, 'cash', 'refunded', '', '2026-04-02 12:21:29', '--', '2026-04-02 10:21:29');
 
 -- --------------------------------------------------------
 
@@ -449,7 +452,6 @@ INSERT INTO `roles` (`id`, `name`) VALUES
 CREATE TABLE `staff` (
   `id` int(11) NOT NULL,
   `user_id` int(11) DEFAULT NULL,
-  `category_id` int(11) DEFAULT NULL,
   `position` varchar(100) DEFAULT NULL,
   `shift` varchar(50) DEFAULT NULL,
   `address` text DEFAULT NULL,
@@ -460,8 +462,8 @@ CREATE TABLE `staff` (
 -- Dumping data for table `staff`
 --
 
-INSERT INTO `staff` (`id`, `user_id`, `category_id`, `position`, `shift`, `address`, `created_at`) VALUES
-(1, 65, NULL, 'Receptionist', 'Morning', 'Main Reception Desk', '2026-04-02 09:27:52');
+INSERT INTO `staff` (`id`, `user_id`, `position`, `shift`, `address`, `created_at`) VALUES
+(1, 65, 'Receptionist', 'Morning', 'Main Reception Desk', '2026-04-02 09:27:52');
 
 -- --------------------------------------------------------
 
@@ -612,8 +614,7 @@ ALTER TABLE `roles`
 --
 ALTER TABLE `staff`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `fk_staff_category` (`category_id`);
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `users`
@@ -636,7 +637,7 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -660,13 +661,13 @@ ALTER TABLE `doctor_schedules`
 -- AUTO_INCREMENT for table `patients`
 --
 ALTER TABLE `patients`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `prescriptions`
@@ -747,7 +748,6 @@ ALTER TABLE `records`
 -- Constraints for table `staff`
 --
 ALTER TABLE `staff`
-  ADD CONSTRAINT `fk_staff_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`),
   ADD CONSTRAINT `staff_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
