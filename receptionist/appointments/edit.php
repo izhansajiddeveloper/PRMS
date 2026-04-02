@@ -221,7 +221,7 @@ include '../../includes/sidebar.php';
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 <?php echo ($is_completed || $is_cancelled) ? 'bg-gray-100 cursor-not-allowed' : ''; ?>">
                                 <?php while ($doctor = mysqli_fetch_assoc($doctors_result)): ?>
                                     <option value="<?php echo $doctor['id']; ?>" <?php echo ($appointment['doctor_id'] == $doctor['id']) ? 'selected' : ''; ?>>
-                                        Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $doctor['name']))); ?> (<?php echo htmlspecialchars($doctor['specialization']); ?>)
+                                        <?php echo htmlspecialchars(trim(str_replace(' ', '', $doctor['name']))); ?> (<?php echo htmlspecialchars($doctor['specialization']); ?>)
                                     </option>
                                 <?php endwhile; ?>
                             </select>

@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['record_payment'])) {
     $transaction_id = mysqli_real_escape_string($conn, $_POST['transaction_id']);
     $notes = mysqli_real_escape_string($conn, $_POST['notes']);
     $payment_date = date('Y-m-d H:i:s');
-    
+
     // Check if amount matches the appointment fee exactly
     $expected_fee = floatval($appointment['consultation_fee']);
     if ($amount != $expected_fee) {
@@ -121,9 +121,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['record_payment'])) {
         $stmt = mysqli_prepare($conn, $insert_query);
         $patient_id = $appointment['patient_id'];
         $doctor_id = $appointment['doctor_id'];
-        
+
         mysqli_stmt_bind_param($stmt, "iiidssss", $appointment_id, $patient_id, $doctor_id, $amount, $payment_method, $transaction_id, $payment_date, $notes);
-        
+
         if (mysqli_stmt_execute($stmt)) {
             $new_payment_id = mysqli_insert_id($conn);
             setFlashMessage("Payment recorded successfully!", "success");
@@ -178,7 +178,7 @@ include '../../includes/sidebar.php';
                             </div>
                             <div>
                                 <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Doctor Information</p>
-                                <p class="text-sm font-semibold text-gray-800 mt-1">Dr. <?php echo htmlspecialchars($appointment['doctor_name']); ?></p>
+                                <p class="text-sm font-semibold text-gray-800 mt-1"> <?php echo htmlspecialchars($appointment['doctor_name']); ?></p>
                                 <p class="text-xs text-gray-500">Scheduled for <?php echo date('d M, h:i A', strtotime($appointment['appointment_date'])); ?></p>
                             </div>
                             <div class="pt-4 border-t">
@@ -208,7 +208,7 @@ include '../../includes/sidebar.php';
                                         class="w-full pl-10 pr-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none bg-gray-50 cursor-not-allowed transition text-2xl font-bold text-gray-800">
                                 </div>
                                 <p class="text-xs text-blue-600 mt-2 flex items-center">
-                                    <i class="fas fa-info-circle mr-1"></i> 
+                                    <i class="fas fa-info-circle mr-1"></i>
                                     Amount must exactly match the required fee.
                                 </p>
                             </div>
@@ -225,7 +225,7 @@ include '../../includes/sidebar.php';
                                 </div>
                                 <div id="txn_container">
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Transaction Ref ID</label>
-                                    <input type="text" name="transaction_id" id="transaction_id" 
+                                    <input type="text" name="transaction_id" id="transaction_id"
                                         placeholder="Optional for cash"
                                         class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-blue-500 transition">
                                 </div>
@@ -233,13 +233,13 @@ include '../../includes/sidebar.php';
 
                             <div class="mb-8">
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Notes</label>
-                                <textarea name="notes" rows="3" 
+                                <textarea name="notes" rows="3"
                                     class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-blue-500 transition"
                                     placeholder="Add any specific details or payment confirmation notes..."></textarea>
                             </div>
 
                             <div class="flex justify-end pt-6 border-t">
-                                <button type="submit" 
+                                <button type="submit"
                                     class="px-10 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:shadow-xl transition transform hover:-translate-y-1 w-full md:w-auto">
                                     <i class="fas fa-check-circle mr-2"></i> Confirm & Collect
                                 </button>
@@ -257,7 +257,7 @@ include '../../includes/sidebar.php';
         const method = document.getElementById('payment_method').value;
         const container = document.getElementById('txn_container');
         const txnInput = document.getElementById('transaction_id');
-        
+
         if (method === 'online') {
             container.style.display = 'block';
             txnInput.required = true;
@@ -273,7 +273,7 @@ include '../../includes/sidebar.php';
     document.querySelector('form').addEventListener('submit', function(e) {
         const amount = parseFloat(document.getElementById('amount').value);
         const expected = <?php echo floatval($appointment['consultation_fee']); ?>;
-        
+
         if (amount !== expected) {
             e.preventDefault();
             alert('Security Error: Payment amount must be exactly Rs' + expected.toFixed(2));
@@ -283,5 +283,3 @@ include '../../includes/sidebar.php';
     // Initial check
     toggleTransactionId();
 </script>
-
-

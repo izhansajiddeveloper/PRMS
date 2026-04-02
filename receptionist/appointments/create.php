@@ -329,7 +329,7 @@ include '../../includes/sidebar.php';
                                                 <input type="radio" name="doctor_id" value="<?php echo $doctor['id']; ?>"
                                                     class="hidden doctor-radio" data-fee="<?php echo $doctor['consultation_fee']; ?>">
                                                 <div>
-                                                    <h3 class="font-semibold text-gray-800">Dr. <?php echo htmlspecialchars($doctor['doctor_name']); ?></h3>
+                                                    <h3 class="font-semibold text-gray-800"> <?php echo htmlspecialchars($doctor['doctor_name']); ?></h3>
                                                     <p class="text-sm text-gray-600"><?php echo htmlspecialchars($doctor['specialization']); ?></p>
                                                     <p class="text-sm text-gray-500">Experience: <?php echo $doctor['experience_years']; ?> years</p>
                                                     <p class="text-sm text-gray-500">Qualification: <?php echo htmlspecialchars($doctor['qualification']); ?></p>
@@ -527,7 +527,7 @@ include '../../includes/sidebar.php';
     if (appointmentDateSelect) {
         appointmentDateSelect.addEventListener('change', async function() {
             const selectedDate = this.value;
-            
+
             // Reset fields
             timeSlotSelect.innerHTML = '<option value="">-- Loading Slots... --</option>';
             timeSlotSelect.disabled = true;
@@ -546,7 +546,7 @@ include '../../includes/sidebar.php';
 
                 if (data.success) {
                     timeSlotSelect.innerHTML = '<option value="">-- Select Time --</option>';
-                    
+
                     if (data.available_slots.length === 0) {
                         timeSlotSelect.innerHTML = '<option value="">-- No slots available --</option>';
                         availabilityMsg.querySelector('p').textContent = data.message || "No available slots for this date.";
@@ -559,7 +559,7 @@ include '../../includes/sidebar.php';
                             option.dataset.shift = slot.shift;
                             timeSlotSelect.appendChild(option);
                         });
-                        
+
                         timeSlotSelect.disabled = false;
                         timeSlotSelect.classList.remove('bg-gray-50', 'cursor-not-allowed');
                         timeSlotSelect.classList.add('bg-white');
@@ -583,4 +583,3 @@ include '../../includes/sidebar.php';
         });
     }
 </script>
-

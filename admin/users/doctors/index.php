@@ -118,8 +118,8 @@ include '../../../includes/sidebar.php';
             <form method="GET" action="" class="flex items-center gap-4">
                 <div class="flex-1 relative">
                     <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
-                        placeholder="Search by name, specialization, email..." 
+                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
+                        placeholder="Search by name, specialization, email..."
                         class="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                 </div>
                 <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm">
@@ -138,8 +138,14 @@ include '../../../includes/sidebar.php';
 
         <!-- Doctors Table -->
         <style>
-            .hide-scrollbar::-webkit-scrollbar { display: none; }
-            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            .hide-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+
+            .hide-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
         </style>
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
@@ -188,20 +194,20 @@ include '../../../includes/sidebar.php';
                                     <td class="px-4 py-4">
                                         <div class="flex items-center gap-2">
                                             <a href="edit.php?id=<?php echo $doctor['id']; ?>"
-                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white shadow-sm transition-all" 
+                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white shadow-sm transition-all"
                                                 title="Edit Details">
                                                 <i class="fas fa-edit text-xs"></i>
                                             </a>
 
                                             <a href="../../schedules/create.php?doctor_id=<?php echo $doctor['id']; ?>"
-                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white shadow-sm transition-all" 
+                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white shadow-sm transition-all"
                                                 title="Add Schedule">
                                                 <i class="fas fa-plus text-xs"></i>
                                             </a>
 
                                             <a href="javascript:void(0)"
                                                 onclick="showSchedule(<?php echo $doctor['id']; ?>, '<?php echo addslashes($doctor['name']); ?>')"
-                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white shadow-sm transition-all" 
+                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white shadow-sm transition-all"
                                                 title="View Schedule">
                                                 <i class="fas fa-calendar-alt text-xs"></i>
                                             </a>
@@ -214,7 +220,7 @@ include '../../../includes/sidebar.php';
 
                                             <a href="javascript:void(0)"
                                                 onclick="confirmDelete(<?php echo $doctor['id']; ?>, '<?php echo htmlspecialchars($doctor['name']); ?>')"
-                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white shadow-sm transition-all" 
+                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white shadow-sm transition-all"
                                                 title="Delete Doctor">
                                                 <i class="fas fa-trash text-xs"></i>
                                             </a>
@@ -243,19 +249,19 @@ include '../../../includes/sidebar.php';
                     </p>
                     <div class="flex gap-2">
                         <?php if ($page > 1): ?>
-                            <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>" 
+                            <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>"
                                 class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-white transition">Previous</a>
                         <?php endif; ?>
-                        
+
                         <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                            <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>" 
+                            <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>"
                                 class="px-4 py-2 border <?php echo $i == $page ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 text-gray-600 hover:bg-white'; ?> rounded-lg text-sm transition">
                                 <?php echo $i; ?>
                             </a>
                         <?php endfor; ?>
 
                         <?php if ($page < $total_pages): ?>
-                            <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>" 
+                            <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>"
                                 class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-white transition">Next</a>
                         <?php endif; ?>
                     </div>
@@ -267,7 +273,7 @@ include '../../../includes/sidebar.php';
 
 <script>
     function confirmDelete(id, name) {
-        if (confirm(`Are you sure you want to delete Dr. "${name}"? This action cannot be undone.`)) {
+        if (confirm(`Are you sure you want to delete   "${name}"? This action cannot be undone.`)) {
             window.location.href = `?delete&id=${id}`;
         }
     }
@@ -313,8 +319,8 @@ include '../../../includes/sidebar.php';
         <!-- Modal Header -->
         <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex justify-between items-center text-white">
             <h3 class="font-bold flex items-center">
-                <i class="fas fa-calendar-alt mr-2"></i> 
-                Schedule for Dr. <span id="modalDoctorName">...</span>
+                <i class="fas fa-calendar-alt mr-2"></i>
+                Schedule for <span id="modalDoctorName">...</span>
             </h3>
             <button onclick="closeScheduleModal()" class="hover:bg-white/20 p-1 rounded-full transition">
                 <i class="fas fa-times px-1"></i>
@@ -332,4 +338,3 @@ include '../../../includes/sidebar.php';
         </div>
     </div>
 </div>
-

@@ -110,9 +110,9 @@ include '../../includes/sidebar.php';
             </div>
             <div class="flex gap-2">
                 <?php if ($payment['appointment_status'] != 'completed' && $payment['appointment_status'] != 'cancelled'): ?>
-                <a href="doctor_slip.php?id=<?php echo $payment['id']; ?>" target="_blank" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm">
-                    <i class="fas fa-file-medical mr-1"></i> Print Doctor Slip
-                </a>
+                    <a href="doctor_slip.php?id=<?php echo $payment['id']; ?>" target="_blank" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm">
+                        <i class="fas fa-file-medical mr-1"></i> Print Doctor Slip
+                    </a>
                 <?php endif; ?>
                 <button onclick="window.print()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-sm">
                     <i class="fas fa-print mr-1 text-blue-500"></i> Print Receipt
@@ -136,7 +136,7 @@ include '../../includes/sidebar.php';
                     </div>
                     <div class="text-right">
                         <span class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-green-100 text-green-700 border border-green-200">
-                           <i class="fas fa-check-circle mr-1"></i> Paid in Full
+                            <i class="fas fa-check-circle mr-1"></i> Paid in Full
                         </span>
                         <p class="text-xs text-gray-400 mt-4 uppercase font-bold tracking-wider">Date Recorded</p>
                         <p class="text-sm font-semibold text-gray-800"><?php echo date('d M Y, h:i A', strtotime($payment['payment_date'])); ?></p>
@@ -153,7 +153,7 @@ include '../../includes/sidebar.php';
                     </div>
                     <div>
                         <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Consultation Provider</h4>
-                        <p class="text-lg font-bold text-gray-900">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $payment['doctor_name']))); ?></p>
+                        <p class="text-lg font-bold text-gray-900"> <?php echo htmlspecialchars(trim(str_replace(' ', '', $payment['doctor_name']))); ?></p>
                         <p class="text-blue-600 text-sm font-semibold mt-1"><?php echo htmlspecialchars($payment['specialization']); ?></p>
                         <p class="text-xs text-gray-500 mt-1 uppercase font-bold tracking-wider">Appt ID: #<?php echo $payment['appointment_id']; ?></p>
                     </div>
@@ -212,12 +212,12 @@ include '../../includes/sidebar.php';
 
                 <!-- Notes Section -->
                 <?php if ($payment['notes']): ?>
-                <div class="mb-10">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Payment Notes</h4>
-                    <div class="p-4 bg-yellow-50 border-l-4 border-yellow-200 text-sm text-gray-600 italic rounded-r-lg shadow-inner">
-                        "<?php echo htmlspecialchars($payment['notes']); ?>"
+                    <div class="mb-10">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Payment Notes</h4>
+                        <div class="p-4 bg-yellow-50 border-l-4 border-yellow-200 text-sm text-gray-600 italic rounded-r-lg shadow-inner">
+                            "<?php echo htmlspecialchars($payment['notes']); ?>"
+                        </div>
                     </div>
-                </div>
                 <?php endif; ?>
 
                 <div class="flex justify-between items-end border-t pt-10">
@@ -237,14 +237,42 @@ include '../../includes/sidebar.php';
 
 <style type="text/css">
     @media print {
-        body { margin: 0; background: #fff; }
-        .modern-sidebar, header, .flex-1.overflow-y-auto > div > div:first-child, .sidebar-link, aside, nav { display: none !important; }
-        .flex-1 { margin: 0 !important; padding: 0 !important; width: 100% !important; display: block !important; }
-        main, .p-6 { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
-        .bg-gray-50 { background-color: white !important; }
-        .max-w-4xl { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
+        body {
+            margin: 0;
+            background: #fff;
+        }
+
+        .modern-sidebar,
+        header,
+        .flex-1.overflow-y-auto>div>div:first-child,
+        .sidebar-link,
+        aside,
+        nav {
+            display: none !important;
+        }
+
+        .flex-1 {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            display: block !important;
+        }
+
+        main,
+        .p-6 {
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+        }
+
+        .bg-gray-50 {
+            background-color: white !important;
+        }
+
+        .max-w-4xl {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+        }
     }
 </style>
-
-
-

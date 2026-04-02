@@ -105,19 +105,19 @@ include '../../includes/sidebar.php';
                 <h1 class="text-2xl font-bold text-gray-800">Pending Payments</h1>
                 <p class="text-gray-600 mt-1">Patients with active appointments waiting for fee collection</p>
             </div>
-            
+
             <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                 <!-- Search Bar -->
                 <form method="GET" action="" class="relative">
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
-                        placeholder="Search patient, doctor..." 
+                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
+                        placeholder="Search patient, doctor..."
                         class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition shadow-sm">
                     <div class="absolute left-3 top-2.5 text-gray-400">
                         <i class="fas fa-search"></i>
                     </div>
                 </form>
 
-                <a href="index.php" 
+                <a href="index.php"
                     class="bg-white text-gray-700 px-5 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center justify-center">
                     <i class="fas fa-list mr-2"></i> All Transactions
                 </a>
@@ -127,7 +127,7 @@ include '../../includes/sidebar.php';
         <!-- Unpaid List -->
         <?php if (mysqli_num_rows($unpaid_result) > 0): ?>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <?php while($row = mysqli_fetch_assoc($unpaid_result)): ?>
+                <?php while ($row = mysqli_fetch_assoc($unpaid_result)): ?>
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
                         <div class="p-5">
                             <div class="flex justify-between items-center mb-4">
@@ -136,21 +136,21 @@ include '../../includes/sidebar.php';
                                 </span>
                                 <span class="text-xs text-gray-400 font-bold uppercase">ID: #<?php echo $row['id']; ?></span>
                             </div>
-                            
+
                             <div class="flex items-center gap-4 mb-4">
                                 <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-bold text-lg">
                                     <?php echo strtoupper(substr($row['patient_name'], 0, 1)); ?>
                                 </div>
                                 <div class="flex-1 overflow-hidden">
-                                     <h3 class="font-bold text-gray-900 truncate"><?php echo htmlspecialchars($row['patient_name']); ?></h3>
-                                     <p class="text-xs text-gray-500 font-semibold"><?php echo $row['patient_phone']; ?></p>
+                                    <h3 class="font-bold text-gray-900 truncate"><?php echo htmlspecialchars($row['patient_name']); ?></h3>
+                                    <p class="text-xs text-gray-500 font-semibold"><?php echo $row['patient_phone']; ?></p>
                                 </div>
                             </div>
 
                             <div class="space-y-2 mb-6 text-sm">
                                 <div class="flex justify-between text-gray-600">
                                     <span>Doctor:</span>
-                                    <span class="font-bold text-gray-800">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $row['doctor_name']))); ?></span>
+                                    <span class="font-bold text-gray-800"> <?php echo htmlspecialchars(trim(str_replace(' ', '', $row['doctor_name']))); ?></span>
                                 </div>
                                 <div class="flex justify-between text-gray-600">
                                     <span>Date:</span>
@@ -162,7 +162,7 @@ include '../../includes/sidebar.php';
                                 </div>
                             </div>
 
-                            <a href="create.php?appointment_id=<?php echo $row['id']; ?>" 
+                            <a href="create.php?appointment_id=<?php echo $row['id']; ?>"
                                 class="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">
                                 <i class="fas fa-money-bill-wave"></i> Collect Payment
                             </a>
@@ -184,4 +184,3 @@ include '../../includes/sidebar.php';
         <?php endif; ?>
     </div>
 </div>
-

@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_payment'])) {
     $payment_method = mysqli_real_escape_string($conn, $_POST['payment_method']);
     $transaction_id = mysqli_real_escape_string($conn, $_POST['transaction_id']);
     $notes = mysqli_real_escape_string($conn, $_POST['notes']);
-    
+
     // Check if amount matches the appointment fee exactly (as per requirements)
     $expected_fee = floatval($payment['expected_fee']);
     if ($amount != $expected_fee) {
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_payment'])) {
         $update_query = "UPDATE payments SET amount = ?, payment_method = ?, transaction_id = ?, notes = ? WHERE id = ?";
         $stmt = mysqli_prepare($conn, $update_query);
         mysqli_stmt_bind_param($stmt, "dsssi", $amount, $payment_method, $transaction_id, $notes, $payment_id);
-        
+
         if (mysqli_stmt_execute($stmt)) {
             setFlashMessage("Payment details updated successfully!", "success");
             header("Location: index.php");
@@ -153,7 +153,7 @@ include '../../includes/sidebar.php';
                             </div>
                             <div>
                                 <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Doctor</label>
-                                <p class="text-sm font-semibold text-gray-800">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $payment['doctor_name']))); ?></p>
+                                <p class="text-sm font-semibold text-gray-800"> <?php echo htmlspecialchars(trim(str_replace(' ', '', $payment['doctor_name']))); ?></p>
                             </div>
                             <div>
                                 <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Required Amount</label>
@@ -167,7 +167,7 @@ include '../../includes/sidebar.php';
                 <div class="lg:col-span-2">
                     <form method="POST" action="" class="bg-white rounded-xl shadow-sm overflow-hidden p-8">
                         <input type="hidden" name="update_payment" value="1">
-                        
+
                         <div class="mb-6">
                             <label class="block text-sm font-bold text-gray-700 mb-2">Collected Amount (Rs) *</label>
                             <div class="relative">
@@ -191,7 +191,7 @@ include '../../includes/sidebar.php';
                             </div>
                             <div id="txn_container">
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Transaction Ref ID</label>
-                                <input type="text" name="transaction_id" id="transaction_id" 
+                                <input type="text" name="transaction_id" id="transaction_id"
                                     value="<?php echo htmlspecialchars($payment['transaction_id']); ?>"
                                     class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-blue-500 transition font-medium">
                             </div>
@@ -199,7 +199,7 @@ include '../../includes/sidebar.php';
 
                         <div class="mb-8">
                             <label class="block text-sm font-bold text-gray-700 mb-2">Modification Notes</label>
-                            <textarea name="notes" rows="4" 
+                            <textarea name="notes" rows="4"
                                 class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-blue-500 transition"
                                 placeholder="State reason for modification..."><?php echo htmlspecialchars($payment['notes']); ?></textarea>
                         </div>
@@ -208,7 +208,7 @@ include '../../includes/sidebar.php';
                             <a href="index.php" class="text-gray-400 hover:text-gray-600 transition">
                                 <i class="fas fa-times-circle mr-1"></i> Cancel Changes
                             </a>
-                            <button type="submit" 
+                            <button type="submit"
                                 class="px-10 py-3 bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1">
                                 <i class="fas fa-save mr-2"></i> Update Record
                             </button>
@@ -237,7 +237,7 @@ include '../../includes/sidebar.php';
     document.querySelector('form').addEventListener('submit', function(e) {
         const amount = parseFloat(document.getElementById('amount').value);
         const expected = <?php echo floatval($payment['expected_fee']); ?>;
-        
+
         if (amount !== expected) {
             e.preventDefault();
             alert('Integrity Violation: Collected amount cannot differ from doctor fee (Rs' + expected.toFixed(2) + ')');
@@ -247,5 +247,3 @@ include '../../includes/sidebar.php';
     // Run initial check
     toggleTransactionId();
 </script>
-
-

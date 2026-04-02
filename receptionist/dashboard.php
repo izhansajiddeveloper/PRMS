@@ -257,10 +257,10 @@ include '../includes/sidebar.php';
                     </div>
                     <div class="flex flex-col space-y-2">
                         <a href="payments/pending.php" class="px-3 py-1 bg-white bg-opacity-20 rounded-lg text-sm hover:bg-opacity-30 transition text-center font-bold">
-                           <i class="fas fa-money-bill-wave mr-1"></i> Collect
+                            <i class="fas fa-money-bill-wave mr-1"></i> Collect
                         </a>
                         <a href="payments/index.php" class="px-3 py-1 bg-white bg-opacity-20 rounded-lg text-sm hover:bg-opacity-30 transition text-center font-bold">
-                           <i class="fas fa-history mr-1"></i> History
+                            <i class="fas fa-history mr-1"></i> History
                         </a>
                     </div>
                 </div>
@@ -304,20 +304,20 @@ include '../includes/sidebar.php';
                                     </div>
                                     <div>
                                         <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($appointment['patient_name']); ?></p>
-                                        <p class="text-xs text-gray-500">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $appointment['doctor_name']))); ?> (<?php echo htmlspecialchars($appointment['specialization']); ?>)</p>
+                                        <p class="text-xs text-gray-500"> <?php echo htmlspecialchars(trim(str_replace(' ', '', $appointment['doctor_name']))); ?> (<?php echo htmlspecialchars($appointment['specialization']); ?>)</p>
                                     </div>
                                 </div>
                                 <div class="text-right">
                                     <p class="text-sm font-semibold text-blue-600"><?php echo date('h:i A', strtotime($appointment['appointment_date'])); ?></p>
                                     <span class="px-2 py-1 text-xs rounded-full 
-                                        <?php if($appointment['status'] == 'completed'): ?>
+                                        <?php if ($appointment['status'] == 'completed'): ?>
                                             bg-green-100 text-green-800 font-medium
-                                        <?php elseif($appointment['status'] == 'pending'): ?>
+                                        <?php elseif ($appointment['status'] == 'pending'): ?>
                                             bg-yellow-100 text-yellow-800 font-medium
                                         <?php else: ?>
                                             bg-gray-100 text-gray-500 font-bold border border-gray-200
                                         <?php endif; ?>">
-                                        <?php if($appointment['status'] == 'cancelled'): ?>
+                                        <?php if ($appointment['status'] == 'cancelled'): ?>
                                             <i class="fas fa-ban mr-1"></i>
                                         <?php endif; ?>
                                         <?php echo ucfirst($appointment['status']); ?>
@@ -401,18 +401,18 @@ include '../includes/sidebar.php';
                         <?php while ($appointment = mysqli_fetch_assoc($recent_appointments_result)): ?>
                             <tr class="hover:bg-gray-50">
                                 <td class="px-3 py-2 text-sm text-gray-800"><?php echo htmlspecialchars($appointment['patient_name']); ?></td>
-                                <td class="px-3 py-2 text-sm text-gray-600">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $appointment['doctor_name']))); ?></td>
+                                <td class="px-3 py-2 text-sm text-gray-600"> <?php echo htmlspecialchars(trim(str_replace(' ', '', $appointment['doctor_name']))); ?></td>
                                 <td class="px-3 py-2 text-sm text-gray-600"><?php echo date('d M Y, h:i A', strtotime($appointment['appointment_date'])); ?></td>
                                 <td class="px-3 py-2">
                                     <span class="px-2 py-1 text-xs rounded-full 
-                                        <?php if($appointment['status'] == 'completed'): ?>
+                                        <?php if ($appointment['status'] == 'completed'): ?>
                                             bg-green-100 text-green-800 font-medium
-                                        <?php elseif($appointment['status'] == 'pending'): ?>
+                                        <?php elseif ($appointment['status'] == 'pending'): ?>
                                             bg-yellow-100 text-yellow-800 font-medium
                                         <?php else: ?>
                                             bg-gray-100 text-gray-500 font-bold border border-gray-200
                                         <?php endif; ?>">
-                                        <?php if($appointment['status'] == 'cancelled'): ?>
+                                        <?php if ($appointment['status'] == 'cancelled'): ?>
                                             <i class="fas fa-ban mr-1"></i>
                                         <?php endif; ?>
                                         <?php echo ucfirst($appointment['status']); ?>
@@ -517,4 +517,3 @@ include '../includes/sidebar.php';
         </div>
     </div>
 </div>
-

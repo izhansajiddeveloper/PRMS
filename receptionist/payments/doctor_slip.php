@@ -106,23 +106,32 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Doctor Prescription Slip - #<?php echo $data['id']; ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @page { size: A4 portrait; margin: 15mm;padding:2rem; }
-        html, body { 
-            height: 260mm; /* Fixed height for A4 to prevent overflow */
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+            padding: 2rem;
+        }
+
+        html,
+        body {
+            height: 260mm;
+            /* Fixed height for A4 to prevent overflow */
             overflow: hidden;
             margin: 0;
             padding: 2rem;
             box-sizing: border-box;
         }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: #fff; 
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #fff;
             color: #1e293b;
             display: flex;
             flex-direction: column;
@@ -138,11 +147,13 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             margin-bottom: 30px;
             position: relative;
         }
+
         .hospital-branding {
             display: flex;
             align-items: center;
             gap: 20px;
         }
+
         .clinic-logo {
             width: 70px;
             height: 70px;
@@ -155,6 +166,7 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             font-size: 2rem;
             box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.2);
         }
+
         .hospital-title h1 {
             font-family: 'Outfit', sans-serif;
             margin: 0;
@@ -165,6 +177,7 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             letter-spacing: -0.5px;
             line-height: 1;
         }
+
         .hospital-title p {
             margin: 5px 0 0;
             font-size: 0.95rem;
@@ -172,10 +185,12 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             font-weight: 500;
             letter-spacing: 0.5px;
         }
+
         .tags-container {
             display: flex;
             gap: 15px;
         }
+
         .header-tag {
             background: #f1f5f9;
             padding: 8px 15px;
@@ -184,14 +199,34 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             border: 1px solid #e2e8f0;
             min-width: 100px;
         }
+
         .header-tag.queue-tag {
             background: #1e40af;
             border-color: #1e40af;
         }
-        .header-tag .tag-label { display: block; font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: #94a3b8; }
-        .header-tag.queue-tag .tag-label { color: rgba(255,255,255,0.7); }
-        .header-tag .tag-value { font-size: 1rem; font-weight: 700; color: #1e40af; }
-        .header-tag.queue-tag .tag-value { color: white; font-size: 1.4rem; }
+
+        .header-tag .tag-label {
+            display: block;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: #94a3b8;
+        }
+
+        .header-tag.queue-tag .tag-label {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .header-tag .tag-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e40af;
+        }
+
+        .header-tag.queue-tag .tag-value {
+            color: white;
+            font-size: 1.4rem;
+        }
 
         /* Information Grid */
         .info-grid {
@@ -204,6 +239,7 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             margin-bottom: 30px;
             border: 1px solid #e2e8f0;
         }
+
         .section-title {
             font-size: 0.75rem;
             font-weight: 800;
@@ -213,14 +249,25 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             display: block;
             letter-spacing: 1px;
         }
+
         .doc-card h2 {
             margin: 0;
             font-family: 'Outfit', sans-serif;
             font-size: 1.4rem;
             color: #1e3a8a;
         }
-        .doc-card p { margin: 2px 0; font-size: 0.9rem; font-weight: 600; color: #475569; }
-        .doc-card .spec { color: #3b82f6; font-size: 1.1rem; }
+
+        .doc-card p {
+            margin: 2px 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .doc-card .spec {
+            color: #3b82f6;
+            font-size: 1.1rem;
+        }
 
         .patient-card p {
             margin: 6px 0;
@@ -230,8 +277,17 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             border-bottom: 1px dashed #cbd5e1;
             padding-bottom: 2px;
         }
-        .patient-card .label { font-weight: 600; color: #64748b; font-size: 0.85rem; }
-        .patient-card .val { font-weight: 700; color: #1e293b; }
+
+        .patient-card .label {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .patient-card .val {
+            font-weight: 700;
+            color: #1e293b;
+        }
 
         /* Rx Body Section */
         .rx-body {
@@ -240,8 +296,10 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             margin-left: 20px;
             padding-left: 40px;
             position: relative;
-            max-height: 550px; /* Force it to stay on one page */
+            max-height: 550px;
+            /* Force it to stay on one page */
         }
+
         .rx-symbol {
             position: absolute;
             top: -15px;
@@ -254,6 +312,7 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             padding: 0 10px;
             line-height: 1;
         }
+
         .watermark {
             position: absolute;
             top: 50%;
@@ -274,32 +333,88 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
             justify-content: space-between;
             align-items: flex-end;
         }
-        .clinic-info p { margin: 3px 0; font-size: 0.85rem; color: #64748b; font-weight: 500; }
-        .signature-area { text-align: center; }
+
+        .clinic-info p {
+            margin: 3px 0;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .signature-area {
+            text-align: center;
+        }
+
         .sig-box {
             border-top: 1px solid #1e293b;
             width: 180px;
             margin-bottom: 5px;
         }
-        .sig-text { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #1e3a8a; }
+
+        .sig-text {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #1e3a8a;
+        }
 
         /* Print Controls */
-        .no-print { position: fixed; top: 15px; right: 20px; display: flex; gap: 10px; z-index: 1000; }
-        .btn {
-            padding: 8px 20px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; transition: transform 0.2s;
+        .no-print {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
         }
-        .btn-print { background: #1e40af; color: white; box-shadow: 0 10px 15px -3px rgba(30,64,175,0.3); }
-        .btn-close { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
-        .btn:hover { transform: translateY(-2px); }
+
+        .btn {
+            padding: 8px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: transform 0.2s;
+        }
+
+        .btn-print {
+            background: #1e40af;
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3);
+        }
+
+        .btn-close {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
 
         @media print {
-            .no-print { display: none !important; }
-            html, body { height: 100%; border: none; }
-            .rx-body { min-height: 450px; }
+            .no-print {
+                display: none !important;
+            }
+
+            html,
+            body {
+                height: 100%;
+                border: none;
+            }
+
+            .rx-body {
+                min-height: 450px;
+            }
         }
     </style>
 </head>
+
 <body onload="window.print()">
     <!-- Controls (Invisible in Print) -->
     <div class="no-print">
@@ -334,7 +449,7 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
     <div class="info-grid">
         <div class="doc-card">
             <span class="section-title">Consulting Specialist</span>
-            <h2>Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $data['doctor_name']))); ?></h2>
+            <h2> <?php echo htmlspecialchars(trim(str_replace(' ', '', $data['doctor_name']))); ?></h2>
             <p class="spec"><?php echo htmlspecialchars($data['specialization']); ?></p>
             <p><?php echo htmlspecialchars($data['qualification'] ?: 'MBBS, FRCP (London)'); ?></p>
         </div>
@@ -352,7 +467,7 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
     <main class="rx-body">
         <div class="rx-symbol">Rx</div>
         <i class="fas fa-prescription-bottle-medical watermark"></i>
-        
+
         <!-- Empty Space for Doctor Notes -->
         <div style="font-size: 0.8rem; color: #e2e8f0; font-weight: bold; margin-top: 10px;">
             [ Notes, Prescription, Medicines ]
@@ -372,4 +487,5 @@ $display_patient_num = $data['patient_number'] > 0 ? $data['patient_number'] : 1
         </div>
     </footer>
 </body>
+
 </html>

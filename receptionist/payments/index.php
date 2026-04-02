@@ -78,7 +78,7 @@ if ($receptionist) {
 // Handle Delete Payment
 if (isset($_GET['delete'])) {
     $payment_id = intval($_GET['delete']);
-    
+
     // Check if payment belongs to receptionist department
     $check_query = "SELECT a.category_id FROM payments pay JOIN appointments a ON pay.appointment_id = a.id WHERE pay.id = ?";
     $stmt = mysqli_prepare($conn, $check_query);
@@ -86,14 +86,14 @@ if (isset($_GET['delete'])) {
     mysqli_stmt_execute($stmt);
     $check_result = mysqli_stmt_get_result($stmt);
     $payment_check = mysqli_fetch_assoc($check_result);
-    
+
     if (!$payment_check || $payment_check['category_id'] != $assigned_category_id) {
         setFlashMessage("Unauthorized access!", "error");
     } else {
         $delete_query = "DELETE FROM payments WHERE id = ?";
         $stmt = mysqli_prepare($conn, $delete_query);
         mysqli_stmt_bind_param($stmt, "i", $payment_id);
-        
+
         if (mysqli_stmt_execute($stmt)) {
             setFlashMessage("Payment record deleted successfully!", "success");
         } else {
@@ -138,19 +138,19 @@ include '../../includes/sidebar.php';
                 </h1>
                 <p class="text-gray-600 mt-1">Manage and track all patient consultation fees for your department</p>
             </div>
-            
+
             <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                 <!-- Search Bar -->
                 <form method="GET" action="" class="relative">
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
-                        placeholder="Search patient, doc, or ID..." 
+                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
+                        placeholder="Search patient, doc, or ID..."
                         class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition shadow-sm">
                     <div class="absolute left-3 top-2.5 text-gray-400">
                         <i class="fas fa-search"></i>
                     </div>
                 </form>
 
-                <a href="pending.php" 
+                <a href="pending.php"
                     class="bg-gradient-to-r from-blue-500 to-green-500 text-white px-5 py-2 rounded-lg hover:shadow-lg transition flex items-center justify-center">
                     <i class="fas fa-plus mr-2"></i>Record New Payment
                 </a>
@@ -187,7 +187,7 @@ include '../../includes/sidebar.php';
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <p class="text-sm text-gray-800">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $payment['doctor_name']))); ?></p>
+                                        <p class="text-sm text-gray-800"> <?php echo htmlspecialchars(trim(str_replace(' ', '', $payment['doctor_name']))); ?></p>
                                     </td>
                                     <td class="px-6 py-4">
                                         <p class="text-sm font-bold text-green-600">Rs<?php echo number_format($payment['amount'], 2); ?></p>
@@ -247,4 +247,3 @@ include '../../includes/sidebar.php';
         }
     }
 </script>
-

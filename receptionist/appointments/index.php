@@ -339,7 +339,7 @@ include '../../includes/sidebar.php';
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <p class="text-sm font-medium text-gray-800">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $appointment['doctor_name']))); ?></p>
+                                        <p class="text-sm font-medium text-gray-800"> <?php echo htmlspecialchars(trim(str_replace(' ', '', $appointment['doctor_name']))); ?></p>
                                         <p class="text-xs text-gray-500"><?php echo htmlspecialchars($appointment['specialization']); ?></p>
                                     </td>
                                     <td class="px-6 py-4">
@@ -352,7 +352,7 @@ include '../../includes/sidebar.php';
                                                 <i class="fas fa-check-circle mr-1"></i> Paid
                                             </span>
                                         <?php else: ?>
-                                            <a href="../payments/create.php?appointment_id=<?php echo $appointment['id']; ?>" 
+                                            <a href="../payments/create.php?appointment_id=<?php echo $appointment['id']; ?>"
                                                 class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-bold border border-red-200 hover:bg-red-200 transition">
                                                 <i class="fas fa-money-bill-wave mr-1"></i> Pay Fee
                                             </a>
@@ -385,7 +385,7 @@ include '../../includes/sidebar.php';
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if ($appointment['payment_id'] && $appointment['status'] != 'completed' && $appointment['status'] != 'cancelled'): ?>
-                                                <a href="../payments/doctor_slip.php?id=<?php echo $appointment['payment_id']; ?>" 
+                                                <a href="../payments/doctor_slip.php?id=<?php echo $appointment['payment_id']; ?>"
                                                     target="_blank" class="text-indigo-600 hover:text-indigo-800 transition" title="Print Doctor Slip">
                                                     <i class="fas fa-user-md"></i>
                                                 </a>
@@ -447,7 +447,7 @@ include '../../includes/sidebar.php';
             window.location.href = `?delete=${id}&id=${id}`;
         }
     }
-    
+
     function confirmCancel(id, name) {
         if (confirm(`Are you sure you want to cancel the appointment for "${name}"? If payment exists, it will be marked as REFUNDED.`)) {
             window.location.href = `?cancel=${id}&id=${id}`;

@@ -26,29 +26,49 @@ $is_schedules_module = (strpos($current_full_url, '/admin/schedules/') !== false
 $is_payments_module = (strpos($current_full_url, '/admin/payments/') !== false);
 
 // Get user info
+$user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 $user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'Guest';
 $user_email = isset($_SESSION['user_email']) ? $_SESSION['user_email'] : '';
 $user_avatar = strtoupper(substr($user_name, 0, 1));
 
-// Fetch global announcements for notifications
-$notif_audience = 'all';
-if ($role_name == 'doctor') $notif_audience = 'doctors';
-elseif ($role_name == 'receptionist') $notif_audience = 'staff';
-
-$notif_query = "SELECT * FROM announcements 
-                WHERE status = 'active' 
-                AND (target_audience = 'all' OR target_audience = ?) 
-                AND (start_at <= NOW())
-                AND (expiry_at IS NULL OR expiry_at > NOW())
-                ORDER BY start_at DESC";
-$notif_stmt = mysqli_prepare($conn, $notif_query);
-mysqli_stmt_bind_param($notif_stmt, "s", $notif_audience);
-mysqli_stmt_execute($notif_stmt);
-$notif_result = mysqli_stmt_get_result($notif_stmt);
-$notif_count = mysqli_num_rows($notif_result);
+// Fetch global announcements for notifications (ONLY for non-admins)
+$notif_count = 0;
 $all_notifications = [];
-while($n = mysqli_fetch_assoc($notif_result)) {
-    $all_notifications[] = $n;
+
+if ($role_name !== 'admin') {
+    $cookie_name = "prms_read_announcements_" . $user_id;
+    $read_ids = isset($_COOKIE[$cookie_name]) ? explode(',', $_COOKIE[$cookie_name]) : [];
+    $notif_audience = 'all';
+    if ($role_name == 'doctor') $notif_audience = 'doctors';
+    elseif ($role_name == 'receptionist') $notif_audience = 'staff';
+
+    $where_clause = "WHERE status = 'active' 
+                    AND (target_audience = 'all' OR target_audience = ?) 
+                    AND (start_at <= NOW())
+                    AND (expiry_at IS NULL OR expiry_at > NOW())";
+
+    if (!empty($read_ids)) {
+        $placeholders = implode(',', array_fill(0, count($read_ids), '?'));
+        $where_clause .= " AND id NOT IN ($placeholders)";
+    }
+
+    $notif_query = "SELECT * FROM announcements $where_clause ORDER BY start_at DESC";
+    $notif_stmt = mysqli_prepare($conn, $notif_query);
+
+    if (!empty($read_ids)) {
+        $types = "s" . str_repeat('i', count($read_ids));
+        $params = array_merge([$notif_audience], array_map('intval', $read_ids));
+        mysqli_stmt_bind_param($notif_stmt, $types, ...$params);
+    } else {
+        mysqli_stmt_bind_param($notif_stmt, "s", $notif_audience);
+    }
+
+    mysqli_stmt_execute($notif_stmt);
+    $notif_result = mysqli_stmt_get_result($notif_stmt);
+    $notif_count = mysqli_num_rows($notif_result);
+    while($n = mysqli_fetch_assoc($notif_result)) {
+        $all_notifications[] = $n;
+    }
 }
 ?>
 
@@ -800,6 +820,19 @@ while($n = mysqli_fetch_assoc($notif_result)) {
     </div>
 </div>
 
+<?php if ($role_name !== 'admin'): ?>
+<!-- Floating notification bell -->
+<div onclick="openNotificationCenter()" class="fixed top-6 right-6 z-[2000] cursor-pointer group">
+    <div class="relative w-14 h-14 bg-white rounded-2xl shadow-2xl flex items-center justify-center border border-gray-100 hover:scale-110 active:scale-95 transition-all duration-300">
+        <i class="fas fa-bell text-xl text-indigo-600 group-hover:rotate-12 transition-transform"></i>
+        <?php if ($notif_count > 0): ?>
+            <span class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                <?php echo $notif_count; ?>
+            </span>
+        <?php endif; ?>
+    </div>
+</div>
+
 <!-- Notification Center Modal (Inbox List) -->
 <div id="notificationCenterModal" class="fixed inset-0 bg-slate-900/60 hidden z-[3000] items-center justify-end p-4 backdrop-blur-[2px] transition-all duration-500">
     <div class="bg-white w-full max-w-sm h-[90vh] rounded-[32px] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col animate-fade-in-right transform">
@@ -831,7 +864,7 @@ while($n = mysqli_fetch_assoc($notif_result)) {
         <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#f8fafc] scroll-smooth">
             <?php if (count($all_notifications) > 0): ?>
                 <?php foreach ($all_notifications as $notif): ?>
-                    <div onclick="viewFullAnnouncement('<?php echo addslashes(htmlspecialchars($notif['title'])); ?>', '<?php echo addslashes(nl2br(htmlspecialchars($notif['message']))); ?>', '<?php echo date('d M Y, h:i A', strtotime($notif['start_at'])); ?>')" 
+                    <div onclick="viewFullAnnouncement(<?php echo $notif['id']; ?>, '<?php echo addslashes(htmlspecialchars($notif['title'])); ?>', '<?php echo addslashes(nl2br(htmlspecialchars($notif['message']))); ?>', '<?php echo date('d M Y, h:i A', strtotime($notif['start_at'])); ?>')" 
                          class="bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300 group cursor-pointer active:scale-[0.98]">
                         <div class="flex items-start gap-4">
                             <div class="mt-1 w-2 h-2 rounded-full bg-indigo-500 ring-4 ring-indigo-50 shrink-0"></div>
@@ -908,16 +941,22 @@ while($n = mysqli_fetch_assoc($notif_result)) {
                     <p class="text-[9px] text-slate-500 font-bold uppercase">System Authority</p>
                 </div>
             </div>
-            <button onclick="closeAnnouncementReader()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition shadow-lg shadow-indigo-200 active:scale-95">
+            <button onclick="markAsRead()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl transition shadow-lg shadow-indigo-200 active:scale-95">
                 Mark as Read
             </button>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <script>
+    let currentReadingId = null;
+    const currentUserId = <?php echo (int)$user_id; ?>;
+    const userReadCookie = "prms_read_announcements_" + currentUserId;
+
     // Expand notification to full reader view
-    function viewFullAnnouncement(title, message, datetime) {
+    function viewFullAnnouncement(id, title, message, datetime) {
+        currentReadingId = id;
         document.getElementById('readTitle').innerHTML = title;
         document.getElementById('readMessage').innerHTML = message;
         document.getElementById('readDateTime').innerText = datetime;
@@ -931,6 +970,49 @@ while($n = mysqli_fetch_assoc($notif_result)) {
         const reader = document.getElementById('fullAnnouncementReader');
         reader.classList.add('hidden');
         reader.classList.remove('flex');
+        currentReadingId = null;
+    }
+
+    // Function to hide announcement permanently for user
+    function markAsRead() {
+        if (!currentReadingId) return;
+
+        // Get existing read IDs from user-specific cookie
+        let readIds = getCookie(userReadCookie) || "";
+        let idArray = readIds ? readIds.split(',') : [];
+
+        if (!idArray.includes(currentReadingId.toString())) {
+            idArray.push(currentReadingId);
+            setCookie(userReadCookie, idArray.join(','), 30);
+        }
+
+        // Real-time animation before reload
+        closeAnnouncementReader();
+        
+        // Refresh to update PHP unread count
+        window.location.reload();
+    }
+
+    // Standard Cookie Helpers
+    function setCookie(name, value, days) {
+        var expires = "";
+        if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
+
+    function getCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
     }
 </script>
 <style>

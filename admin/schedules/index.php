@@ -82,8 +82,8 @@ include '../../includes/sidebar.php';
             <form method="GET" action="" class="flex items-center gap-4">
                 <div class="flex-1 relative">
                     <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
-                        placeholder="Search by doctor, specialization, day or shift..." 
+                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
+                        placeholder="Search by doctor, specialization, day or shift..."
                         class="w-full pl-11 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                 </div>
                 <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm">
@@ -150,13 +150,13 @@ include '../../includes/sidebar.php';
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center justify-center gap-2">
-                                            <a href="edit.php?id=<?php echo $row['id']; ?>" 
-                                               class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
+                                            <a href="edit.php?id=<?php echo $row['id']; ?>"
+                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
                                                 <i class="fas fa-edit text-xs"></i>
                                             </a>
-                                            <a href="javascript:void(0)" 
-                                               onclick="confirmDelete(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['doctor_name']); ?>')" 
-                                               class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                                            <a href="javascript:void(0)"
+                                                onclick="confirmDelete(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['doctor_name']); ?>')"
+                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm">
                                                 <i class="fas fa-trash text-xs"></i>
                                             </a>
                                         </div>
@@ -184,19 +184,19 @@ include '../../includes/sidebar.php';
                     </p>
                     <div class="flex gap-2">
                         <?php if ($page > 1): ?>
-                            <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>" 
+                            <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>"
                                 class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-white transition">Previous</a>
                         <?php endif; ?>
-                        
+
                         <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                            <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>" 
+                            <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>"
                                 class="px-4 py-2 border <?php echo $i == $page ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 text-gray-600 hover:bg-white'; ?> rounded-lg text-sm transition">
                                 <?php echo $i; ?>
                             </a>
                         <?php endfor; ?>
 
                         <?php if ($page < $total_pages): ?>
-                            <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>" 
+                            <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>"
                                 class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-white transition">Next</a>
                         <?php endif; ?>
                     </div>
@@ -208,9 +208,8 @@ include '../../includes/sidebar.php';
 
 <script>
     function confirmDelete(id, name) {
-        if (confirm(`Are you sure you want to delete the schedule for Dr. "${name}"?`)) {
+        if (confirm(`Are you sure you want to delete the schedule for   "${name}"?`)) {
             window.location.href = `index.php?delete&id=${id}`;
         }
     }
 </script>
-

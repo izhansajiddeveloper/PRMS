@@ -27,7 +27,7 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
     mysqli_stmt_bind_param($stmt, "is", $doctor_id, $day_of_week);
     mysqli_stmt_execute($stmt);
     $schedules_result = mysqli_stmt_get_result($stmt);
-    
+
     $all_shifts = [];
     while ($row = mysqli_fetch_assoc($schedules_result)) {
         $all_shifts[] = $row;
@@ -55,24 +55,24 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
     // 3. Generate available time slots based on ALL shifts
     $available_slots = [];
     $total_max_appointments = 0;
-    
+
     // Define current time for comparison (only used if date is today)
     $is_today = ($date === date('Y-m-d'));
     $now_timestamp = time();
 
     foreach ($all_shifts as $shift) {
         $total_max_appointments += $shift['max_appointments'];
-        
+
         $start = strtotime($shift['start_time']);
         $end = strtotime($shift['end_time']);
 
         $current = $start;
         while ($current < $end) {
             $time_slot = date('H:i:s', $current);
-            
+
             // Generate full timestamp for this specific slot for comparison
             $slot_timestamp = strtotime($date . ' ' . $time_slot);
-            
+
             // Check if this slot is already booked
             if (!in_array($time_slot, $booked_slots)) {
                 // If it's today, only show future slots
@@ -111,7 +111,7 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
     $doctor_details = mysqli_fetch_assoc($doctor_result);
 
     if ($doctor_details) {
-        $doctor_details['doctor_name'] = 'Dr. ' . trim(str_replace('Dr.', '', $doctor_details['doctor_name']));
+        $doctor_details['doctor_name'] = '  ' . trim(str_replace(' ', '', $doctor_details['doctor_name']));
     }
 
     // 7. Status flags
@@ -129,10 +129,7 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
         'limit_reached' => $limit_reached,
         'max_limit' => $total_max_appointments,
         'booked_count' => $booked_count,
-        'message' => $limit_reached ? "Doctor has reached maximum appointments for this day" : 
-                    (!$doctor_schedule_exists ? "Doctor is not available on $day_of_week" : 
-                    ($is_past_date ? "Cannot book appointments for past dates" : 
-                    (count($available_slots) > 0 ? count($available_slots) . " slots available" : "No available slots for this time")))
+        'message' => $limit_reached ? "Doctor has reached maximum appointments for this day" : (!$doctor_schedule_exists ? "Doctor is not available on $day_of_week" : ($is_past_date ? "Cannot book appointments for past dates" : (count($available_slots) > 0 ? count($available_slots) . " slots available" : "No available slots for this time")))
     ]);
     exit();
 }

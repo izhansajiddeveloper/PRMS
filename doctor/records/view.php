@@ -117,7 +117,7 @@ include '../../includes/sidebar.php';
                         </div>
                         <div>
                             <label class="text-sm text-gray-500">Doctor</label>
-                            <p class="font-semibold text-gray-800">Dr. <?php echo htmlspecialchars($record['doctor_name']); ?></p>
+                            <p class="font-semibold text-gray-800"> <?php echo htmlspecialchars($record['doctor_name']); ?></p>
                             <p class="text-xs text-gray-500"><?php echo htmlspecialchars($record['specialization']); ?></p>
                         </div>
                     </div>

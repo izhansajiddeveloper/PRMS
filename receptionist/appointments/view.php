@@ -101,7 +101,7 @@ include '../../includes/sidebar.php';
                 <?php if ($appointment['payment_id'] && $appointment['status'] != 'completed' && $appointment['status'] != 'cancelled'): ?>
                     <a href="../payments/doctor_slip.php?id=<?php echo $appointment['payment_id']; ?>" target="_blank"
                         class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-                        <i class="fas fa-user-md mr-2"></i>Print Dr. Slip
+                        <i class="fas fa-user-md mr-2"></i>Print Slip
                     </a>
                 <?php endif; ?>
                 <?php if (!$appointment['payment_id']): ?>
@@ -172,7 +172,7 @@ include '../../includes/sidebar.php';
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Doctor:</span>
-                        <span class="text-gray-800">Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $appointment['doctor_name']))); ?></span>
+                        <span class="text-gray-800"> <?php echo htmlspecialchars(trim(str_replace(' ', '', $appointment['doctor_name']))); ?></span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Specialization:</span>
@@ -240,13 +240,12 @@ include '../../includes/sidebar.php';
                             <p class="text-red-800 font-bold">Consultation Fee Not Collected</p>
                             <p class="text-red-600 text-sm">The required fee is Rs<?php echo number_format($appointment['consultation_fee'], 2); ?></p>
                         </div>
-                        <a href="../payments/create.php?appointment_id=<?php echo $appointment['id']; ?>" 
+                        <a href="../payments/create.php?appointment_id=<?php echo $appointment['id']; ?>"
                             class="px-6 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition shadow-sm">
                             <i class="fas fa-money-bill-wave mr-2"></i> Record Payment Now
                         </a>
                     </div>
                 <?php endif; ?>
+            </div>
         </div>
     </div>
-</div>
-

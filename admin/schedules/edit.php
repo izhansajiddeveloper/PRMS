@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $update_query = "UPDATE doctor_schedules SET doctor_id = ?, day_of_week = ?, shift_type = ?, start_time = ?, end_time = ?, max_appointments = ?, status = ? WHERE id = ?";
     $stmt = mysqli_prepare($conn, $update_query);
     mysqli_stmt_bind_param($stmt, "issssi i", $doctor_id, $day_of_week, $shift_type, $start_time, $end_time, $max_appointments, $status, $id);
-    
+
     if (mysqli_stmt_execute($stmt)) {
         setFlashMessage("Schedule updated successfully!", "success");
         header("Location: index.php");
@@ -80,7 +80,7 @@ include '../../includes/sidebar.php';
                                 <option value="">Choose a doctor</option>
                                 <?php while ($doc = mysqli_fetch_assoc($doctors_result)): ?>
                                     <option value="<?php echo $doc['id']; ?>" <?php echo $schedule['doctor_id'] == $doc['id'] ? 'selected' : ''; ?>>
-                                        Dr. <?php echo htmlspecialchars($doc['name']); ?> (<?php echo htmlspecialchars($doc['specialization']); ?>)
+                                        <?php echo htmlspecialchars($doc['name']); ?> (<?php echo htmlspecialchars($doc['specialization']); ?>)
                                     </option>
                                 <?php endwhile; ?>
                             </select>
@@ -110,7 +110,7 @@ include '../../includes/sidebar.php';
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Max Patient Limit *</label>
-                            <input type="number" name="max_appointments" required min="1" max="100" 
+                            <input type="number" name="max_appointments" required min="1" max="100"
                                 value="<?php echo $schedule['max_appointments']; ?>"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                         </div>
@@ -119,13 +119,13 @@ include '../../includes/sidebar.php';
                     <div class="grid grid-cols-2 gap-6 mb-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Start Time *</label>
-                            <input type="time" name="start_time" required 
+                            <input type="time" name="start_time" required
                                 value="<?php echo $schedule['start_time']; ?>"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">End Time *</label>
-                            <input type="time" name="end_time" required 
+                            <input type="time" name="end_time" required
                                 value="<?php echo $schedule['end_time']; ?>"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
                         </div>

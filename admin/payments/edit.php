@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $update_query = "UPDATE payments SET amount = ?, payment_method = ?, status = ?, transaction_id = ?, notes = ? WHERE id = ?";
     $stmt = mysqli_prepare($conn, $update_query);
     mysqli_stmt_bind_param($stmt, "sssssi", $amount, $payment_method, $status, $transaction_id, $notes, $id);
-    
+
     if (mysqli_stmt_execute($stmt)) {
         setFlashMessage("Payment record updated successfully!", "success");
         header("Location: index.php");
@@ -82,14 +82,14 @@ include '../../includes/sidebar.php';
                         </div>
                         <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-100">
                             <label class="block text-xs font-bold text-emerald-600 uppercase mb-1">Doctor Assigned</label>
-                            <div class="text-sm font-semibold text-gray-800">Dr. <?php echo htmlspecialchars($payment['doctor_name']); ?></div>
+                            <div class="text-sm font-semibold text-gray-800"> <?php echo htmlspecialchars($payment['doctor_name']); ?></div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-6 mb-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Collected Amount (Rs) *</label>
-                            <input type="number" name="amount" required step="0.01" 
+                            <input type="number" name="amount" required step="0.01"
                                 value="<?php echo $payment['amount']; ?>"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 font-bold text-emerald-700">
                         </div>
@@ -115,7 +115,7 @@ include '../../includes/sidebar.php';
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Transaction / Ref ID</label>
-                            <input type="text" name="transaction_id" 
+                            <input type="text" name="transaction_id"
                                 value="<?php echo htmlspecialchars($payment['transaction_id']); ?>"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                                 placeholder="External reference #">
