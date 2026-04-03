@@ -21,47 +21,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_schedule'])) {
     if (!$doctor_id || !$preset || !$start_time || !$end_time) {
         $error = "Please fill in all required fields.";
     } else {
-        // Define days based on preset
-        $days = [];
-        if ($preset == 'full_week') {
-            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        } elseif ($preset == 'five_days') {
-            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        } elseif ($preset == 'three_days') {
-            $days = ['Monday', 'Wednesday', 'Friday'];
-        }
-
-        mysqli_begin_transaction($conn);
-        try {
-            $inserted_count = 0;
-            
-            foreach ($days as $day) {
-                // Delete existing schedule for same doctor, day and shift to allow "Replace" behavior
-                $delete_query = "DELETE FROM doctor_schedules WHERE doctor_id = ? AND day_of_week = ? AND shift_type = ?";
-                $del_stmt = mysqli_prepare($conn, $delete_query);
-                mysqli_stmt_bind_param($del_stmt, "iss", $doctor_id, $day, $shift_type);
-                mysqli_stmt_execute($del_stmt);
-
-                $insert_query = "INSERT INTO doctor_schedules (doctor_id, day_of_week, shift_type, start_time, end_time, max_appointments, status, notes) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-                $stmt = mysqli_prepare($conn, $insert_query);
-                mysqli_stmt_bind_param($stmt, "isssisss", $doctor_id, $day, $shift_type, $start_time, $end_time, $max_appointments, $status, $notes);
-                mysqli_stmt_execute($stmt);
-                $inserted_count++;
+        // Global check: Does this doctor already have ANY schedule?
+        $exist_query = "SELECT id FROM doctor_schedules WHERE doctor_id = ? LIMIT 1";
+        $exist_stmt = mysqli_prepare($conn, $exist_query);
+        mysqli_stmt_bind_param($exist_stmt, "i", $doctor_id);
+        mysqli_stmt_execute($exist_stmt);
+        $exist_result = mysqli_stmt_get_result($exist_stmt);
+        
+        if (mysqli_num_rows($exist_result) > 0) {
+            $error = "This doctor already has a defined schedule. Please delete the current schedule under 'Schedules' list before assigning a new preset.";
+        } else {
+            // Define days based on preset
+            $days = [];
+            if ($preset == 'full_week') {
+                $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            } elseif ($preset == 'five_days') {
+                $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            } elseif ($preset == 'three_days') {
+                $days = ['Monday', 'Wednesday', 'Friday'];
             }
 
-            mysqli_commit($conn);
-            
-            if ($inserted_count > 0) {
-                setFlashMessage("Successfully updated schedules for $inserted_count days.", "success");
+            mysqli_begin_transaction($conn);
+            try {
+                $inserted_count = 0;
+                foreach ($days as $day) {
+                    $insert_query = "INSERT INTO doctor_schedules (doctor_id, day_of_week, shift_type, start_time, end_time, max_appointments, status, notes) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                    $stmt = mysqli_prepare($conn, $insert_query);
+                    mysqli_stmt_bind_param($stmt, "isssisss", $doctor_id, $day, $shift_type, $start_time, $end_time, $max_appointments, $status, $notes);
+                    mysqli_stmt_execute($stmt);
+                    $inserted_count++;
+                }
+
+                mysqli_commit($conn);
+                setFlashMessage("Successfully created schedules for $inserted_count days.", "success");
                 header("Location: index.php");
                 exit();
-            } else {
-                $error = "No new schedules were added. They may already exist for the selected days.";
+            } catch (Exception $e) {
+                mysqli_rollback($conn);
+                $error = "Failed to create schedules: " . $e->getMessage();
             }
-        } catch (Exception $e) {
-            mysqli_rollback($conn);
-            $error = "Failed to create schedules: " . $e->getMessage();
         }
     }
 }
