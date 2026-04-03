@@ -28,7 +28,7 @@ if (isset($_GET['delete']) && isset($_GET['id'])) {
 }
 
 // Pagination setup
-$limit = 10;
+$limit = 50;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 

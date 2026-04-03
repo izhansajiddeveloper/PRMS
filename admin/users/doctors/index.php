@@ -86,8 +86,9 @@ $total_result = mysqli_query($conn, $total_query);
 $total_records = mysqli_fetch_assoc($total_result)['total'];
 $total_pages = ceil($total_records / $limit);
 
-// Fetch all doctors with user information (with search and pagination)
-$query = "SELECT d.*, u.id as user_id, u.name, u.email, u.phone, u.status, u.created_at 
+// Fetch all doctors with user information and schedule count
+$query = "SELECT d.*, u.id as user_id, u.name, u.email, u.phone, u.status, u.created_at,
+          (SELECT COUNT(*) FROM doctor_schedules ds WHERE ds.doctor_id = d.id) as schedule_count
           FROM doctors d 
           JOIN users u ON d.user_id = u.id 
           $where_clause
@@ -199,11 +200,13 @@ include '../../../includes/sidebar.php';
                                                 <i class="fas fa-edit text-xs"></i>
                                             </a>
 
-                                            <a href="../../schedules/create.php?doctor_id=<?php echo $doctor['id']; ?>"
-                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white shadow-sm transition-all"
-                                                title="Add Schedule">
-                                                <i class="fas fa-plus text-xs"></i>
-                                            </a>
+                                            <?php if ($doctor['schedule_count'] == 0): ?>
+                                                <a href="../../schedules/create.php?doctor_id=<?php echo $doctor['id']; ?>"
+                                                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white shadow-sm transition-all"
+                                                    title="Add Schedule">
+                                                    <i class="fas fa-plus text-xs"></i>
+                                                </a>
+                                            <?php endif; ?>
 
                                             <a href="javascript:void(0)"
                                                 onclick="showSchedule(<?php echo $doctor['id']; ?>, '<?php echo addslashes($doctor['name']); ?>')"
