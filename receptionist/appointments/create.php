@@ -174,11 +174,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_appointment'])) {
                 if (mysqli_stmt_num_rows($stmt) > 0) {
                     $error = "This patient already has a pending appointment with this doctor! Please wait for it to be completed or cancelled.";
                 } else {
+                    // Calculate token number
+                    $num_query = "SELECT 
+                                    (SELECT COUNT(*) FROM appointments WHERE doctor_id = ? AND DATE(appointment_date) = CURDATE() AND shift_type = ? AND status != 'cancelled') +
+                                    (SELECT COUNT(*) FROM call_appointments WHERE doctor_id = ? AND DATE(created_at) = CURDATE() AND shift_type = ? AND status != 'cancelled') 
+                                as total_count";
+                    $n_stmt = mysqli_prepare($conn, $num_query);
+                    mysqli_stmt_bind_param($n_stmt, "isis", $doctor_id, $shift_type, $doctor_id, $shift_type);
+                    mysqli_stmt_execute($n_stmt);
+                    $n_result = mysqli_stmt_get_result($n_stmt);
+                    $n_data = mysqli_fetch_assoc($n_result);
+                    $patient_number = $n_data['total_count'] + 1;
+
                     // Insert appointment
-                    $insert_query = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, status, symptoms, category_id, consultation_fee, shift_type, created_at) 
-                                     VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, NOW())";
+                    $insert_query = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, status, symptoms, category_id, consultation_fee, shift_type, patient_number, created_at) 
+                                     VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, NOW())";
                     $stmt = mysqli_prepare($conn, $insert_query);
-                    mysqli_stmt_bind_param($stmt, "iisssds", $patient_id, $doctor_id, $full_datetime, $symptoms, $assigned_category_id, $consultation_fee, $shift_type);
+                    mysqli_stmt_bind_param($stmt, "iisssdss", $patient_id, $doctor_id, $full_datetime, $symptoms, $assigned_category_id, $consultation_fee, $shift_type, $patient_number);
 
                     if (mysqli_stmt_execute($stmt)) {
                         $appointment_id = mysqli_insert_id($conn);

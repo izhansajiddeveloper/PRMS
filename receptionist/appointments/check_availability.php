@@ -52,6 +52,23 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
         $booked_slots[] = $time_only;
     }
 
+    // Check booked slots from call_appointments
+    $call_query = "SELECT id, appointment_date 
+                   FROM call_appointments 
+                   WHERE doctor_id = ? 
+                   AND DATE(appointment_date) = ? 
+                   AND status != 'cancelled'";
+    $c_stmt = mysqli_prepare($conn, $call_query);
+    mysqli_stmt_bind_param($c_stmt, "is", $doctor_id, $date);
+    mysqli_stmt_execute($c_stmt);
+    $c_result = mysqli_stmt_get_result($c_stmt);
+    while ($c_row = mysqli_fetch_assoc($c_result)) {
+        if ($c_row['appointment_date']) {
+            $time_only = date('H:i:s', strtotime($c_row['appointment_date']));
+            $booked_slots[] = $time_only;
+        }
+    }
+
     // 3. Generate available time slots based on ALL shifts
     $available_slots = [];
     $total_max_appointments = 0;

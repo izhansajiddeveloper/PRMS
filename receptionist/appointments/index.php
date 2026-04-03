@@ -112,17 +112,16 @@ $where_sql = "WHERE " . implode(" AND ", $where_clauses);
 // Fetch appointments
 $appointments_query = "SELECT a.*, p.name as patient_name, p.age, p.gender, p.phone, 
                                u.name as doctor_name, d.specialization,
-                               pay.id as payment_id, pay.amount as paid_amount,
-                               CASE 
-                                   WHEN r.id IS NOT NULL THEN 1 
-                                   ELSE 0 
-                               END as has_record
+                               (SELECT id FROM payments WHERE appointment_id = a.id LIMIT 1) as payment_id,
+                               (SELECT amount FROM payments WHERE appointment_id = a.id LIMIT 1) as paid_amount,
+                               (SELECT COUNT(*) FROM records r 
+                                WHERE r.patient_id = a.patient_id 
+                                AND r.doctor_id = a.doctor_id 
+                                AND DATE(r.visit_date) = DATE(a.appointment_date)) as has_record
                         FROM appointments a
                         JOIN patients p ON a.patient_id = p.id
                         JOIN doctors d ON a.doctor_id = d.id
                         JOIN users u ON d.user_id = u.id
-                        LEFT JOIN records r ON r.patient_id = a.patient_id AND r.doctor_id = a.doctor_id AND DATE(r.visit_date) = DATE(a.appointment_date)
-                        LEFT JOIN payments pay ON pay.appointment_id = a.id
                         $where_sql
                         ORDER BY a.appointment_date DESC";
 $appointments_result = mysqli_query($conn, $appointments_query);
@@ -283,11 +282,14 @@ include '../../includes/sidebar.php';
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         <?php if (mysqli_num_rows($appointments_result) > 0): ?>
-                            <?php while ($appointment = mysqli_fetch_assoc($appointments_result)): ?>
+                            <?php 
+                            $tk_count = 1;
+                            while ($appointment = mysqli_fetch_assoc($appointments_result)): 
+                            ?>
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-4 text-sm text-gray-800">
                                         <div class="font-bold">#<?php echo $appointment['id']; ?></div>
-                                        <div class="text-[10px] text-blue-600 uppercase font-bold mt-1">Token: <?php echo str_pad(max(1, (int)$appointment['patient_number']), 2, '0', STR_PAD_LEFT); ?></div>
+                                        <div class="text-[10px] text-blue-600 uppercase font-bold mt-1">Token: <?php echo str_pad($tk_count++, 2, '0', STR_PAD_LEFT); ?></div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center">

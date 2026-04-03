@@ -693,6 +693,15 @@ if ($role_name !== 'admin') {
                     </ul>
                 </div>
             </li>
+
+            <!-- Call Bookings -->
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>receptionist/calls/index.php" class="nav-link-custom <?= (strpos($current_full_url, '/receptionist/calls/') !== false) ? 'active' : '' ?>">
+                    <i class="fas fa-phone-volume"></i>
+                    <span>Call Bookings</span>
+                </a>
+            </li>
+
             <!-- Payments -->
             <li class="nav-item">
                 <a class="nav-link-custom <?= (strpos($current_full_url, '/receptionist/payments/') !== false) ? 'active' : '' ?>" data-toggle="collapse" href="#paymentMgmt" role="button" aria-expanded="<?= (strpos($current_full_url, '/receptionist/payments/') !== false) ? 'true' : 'false' ?>" aria-controls="paymentMgmt">

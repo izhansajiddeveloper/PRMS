@@ -73,8 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_patient'])) {
             $new_patient_id = mysqli_insert_id($conn);
             $success = "Patient registered successfully!";
 
-            // Always redirect to book appointment after registration
-            header("Location: appointments/create.php?patient_id=" . $new_patient_id);
+            // Redirect based on which button was pressed
+            $redirect_to = isset($_POST['redirect_to']) ? $_POST['redirect_to'] : 'appointment';
+            if ($redirect_to === 'call') {
+                header("Location: calls/create.php?patient_id=" . $new_patient_id);
+            } else {
+                header("Location: appointments/create.php?patient_id=" . $new_patient_id);
+            }
             exit();
         } else {
             $error = "Failed to register patient!";
@@ -116,18 +121,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['edit_patient'])) {
 $search_modal = isset($_POST['search_patient_modal']) ? mysqli_real_escape_string($conn, $_POST['search_patient_modal']) : '';
 $search_modal_results = null;
 if ($search_modal) {
+    // 1) Search registered patients who have no pending direct appointment (regardless of date)
     $search_query = "SELECT p.*,
                    (SELECT COUNT(*) FROM appointments 
-                    WHERE patient_id = p.id AND status = 'pending' 
-                    AND appointment_date > NOW()) as pending_appointments
+                    WHERE patient_id = p.id AND status = 'pending') as pending_appointments
                    FROM patients p 
                    WHERE (p.name LIKE '%$search_modal%' OR p.phone LIKE '%$search_modal%')
                    AND (SELECT COUNT(*) FROM appointments 
-                        WHERE patient_id = p.id AND status = 'pending' 
-                        AND appointment_date > NOW()) = 0
+                        WHERE patient_id = p.id AND status = 'pending') = 0
                    ORDER BY p.name ASC
                    LIMIT 10";
     $search_modal_results = mysqli_query($conn, $search_query);
+}
+
+// Separate search for call appointments
+$search_call_modal = isset($_POST['search_call_modal']) ? mysqli_real_escape_string($conn, $_POST['search_call_modal']) : '';
+$call_appt_results = null;
+if ($search_call_modal) {
+    $call_search_query = "SELECT ca.id as call_appt_id, ca.patient_name, ca.phone,
+                          ca.appointment_date, ca.time_slot, ca.shift_type, ca.patient_number,
+                          ca.disease_id, ca.doctor_id, ca.notes, ca.patient_id as linked_patient_id,
+                          u.name as doctor_name, cat.name as category_name,
+                          p.age, p.weight, p.gender, p.address as city, p.blood_group, p.status as patient_status
+                          FROM call_appointments ca
+                          JOIN doctors d ON ca.doctor_id = d.id
+                          JOIN users u ON d.user_id = u.id
+                          JOIN categories cat ON ca.disease_id = cat.id
+                          LEFT JOIN patients p ON ca.patient_id = p.id
+                          WHERE ca.status = 'pending'
+                          AND (ca.patient_name LIKE '%$search_call_modal%' OR ca.phone LIKE '%$search_call_modal%')
+                          ORDER BY ca.appointment_date ASC
+                          LIMIT 10";
+    $call_appt_results = mysqli_query($conn, $call_search_query);
 }
 
 // Search functionality for main table
@@ -140,9 +165,21 @@ if ($search) {
 // Fetch all patients for main table
 $patients_query = "SELECT p.*,
                    (SELECT COUNT(*) FROM appointments 
-                    WHERE patient_id = p.id AND status = 'pending' 
-                    AND appointment_date > NOW()) as pending_appointments,
-                   (SELECT name FROM categories WHERE id = p.disease) as disease_name
+                    WHERE patient_id = p.id AND status = 'pending') as pending_appointments,
+                   (SELECT name FROM categories WHERE id = p.disease) as disease_name,
+                   (SELECT a.status FROM appointments a 
+                    WHERE a.patient_id = p.id 
+                    ORDER BY a.created_at DESC LIMIT 1) as last_appt_status,
+                   (SELECT u.name FROM appointments a 
+                    JOIN doctors d ON a.doctor_id = d.id 
+                    JOIN users u ON d.user_id = u.id
+                    WHERE a.patient_id = p.id 
+                    ORDER BY a.created_at DESC LIMIT 1) as last_doctor_name,
+                   (SELECT a.appointment_date FROM appointments a 
+                    WHERE a.patient_id = p.id 
+                    ORDER BY a.created_at DESC LIMIT 1) as last_appt_date,
+                   (SELECT COUNT(*) FROM call_appointments ca 
+                    WHERE ca.patient_id = p.id AND ca.status = 'visited') as via_call_count
                    FROM patients p 
                    $where_clause
                    ORDER BY p.created_at DESC";
@@ -194,6 +231,11 @@ include '../includes/sidebar.php';
                     class="bg-gradient-to-r from-blue-500 to-green-500 text-white px-5 py-2 rounded-lg hover:shadow-lg transition flex items-center justify-center">
                     <i class="fas fa-user-plus mr-2"></i>Add New Patient
                 </button>
+                
+                <button onclick="openCallArrivalModal()"
+                    class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-5 py-2 rounded-lg hover:shadow-lg transition flex items-center justify-center">
+                    <i class="fas fa-phone-alt mr-2"></i>Arrive Calling Patient
+                </button>
             </div>
         </div>
 
@@ -219,6 +261,7 @@ include '../includes/sidebar.php';
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Age/Weight/Gender</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">City & Phone</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Blood Group & Disease</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Visit</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                     </thead>
@@ -233,6 +276,11 @@ include '../includes/sidebar.php';
                                             </div>
                                             <div class="ml-3">
                                                 <p class="text-sm font-medium text-gray-800"><?php echo htmlspecialchars($patient['name']); ?></p>
+                                                <?php if ($patient['via_call_count'] > 0): ?>
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-700 mt-0.5">
+                                                        <i class="fas fa-phone mr-1" style="font-size:9px"></i>Via Call
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </td>
@@ -257,6 +305,38 @@ include '../includes/sidebar.php';
                                             <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 mt-1 inline-block">
                                                 <?php echo htmlspecialchars($patient['disease_name']); ?>
                                             </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <?php if ($patient['last_appt_status']): ?>
+                                            <?php
+                                                $status_cfg = [
+                                                    'pending'   => ['bg-yellow-100 text-yellow-800 border-yellow-200', 'fa-clock',        'Pending'],
+                                                    'completed' => ['bg-green-100 text-green-800 border-green-200',  'fa-check-circle',  'Completed'],
+                                                    'cancelled' => ['bg-red-100 text-red-800 border-red-200',      'fa-times-circle',  'Cancelled'],
+                                                ];
+                                                $s = $patient['last_appt_status'];
+                                                [$cls, $ico, $lbl] = $status_cfg[$s] ?? ['bg-gray-100 text-gray-600 border-gray-200', 'fa-circle', ucfirst($s)];
+                                            ?>
+                                            <span class="inline-flex items-center px-2 py-1 rounded border text-xs font-bold <?php echo $cls; ?>">
+                                                <i class="fas <?php echo $ico; ?> mr-1"></i><?php echo $lbl; ?>
+                                            </span>
+                                            
+                                            <?php if ($patient['last_doctor_name']): ?>
+                                                <p class="text-sm font-semibold text-gray-800 mt-1 truncate max-w-[150px]" title="<?php echo htmlspecialchars($patient['last_doctor_name']); ?>">
+                                                   Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $patient['last_doctor_name']))); ?>
+                                                </p>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($patient['last_appt_date']): ?>
+                                                <p class="text-xs text-gray-500">
+                                                    <?php echo date('d M Y', strtotime($patient['last_appt_date'])); ?>
+                                                </p>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <div class="text-center py-2">
+                                                <span class="text-gray-400 text-xs italic">No visits yet</span>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4">
@@ -286,7 +366,7 @@ include '../includes/sidebar.php';
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                                     <button onclick="openAddPatientModal(0, '<?php echo addslashes($search); ?>')" class="text-blue-600 hover:underline mt-2 inline-block">
                                         Add your first patient
                                     </button>
@@ -333,53 +413,62 @@ include '../includes/sidebar.php';
                     <div class="flex gap-2">
                         <input type="text" name="search_patient_modal" id="searchPatientInput"
                             placeholder="Enter name or phone number..."
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            value="<?php echo htmlspecialchars($search_modal); ?>">
                         <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
                             <i class="fas fa-search mr-1"></i> Search
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Only patients without pending appointments are shown</p>
                 </div>
             </form>
 
-            <div id="searchResultsContainer" class="mt-4 max-h-80 overflow-y-auto">
-                <?php if ($search_modal_results && mysqli_num_rows($search_modal_results) > 0): ?>
-                    <p class="text-sm text-gray-600 mb-2">Found <?php echo mysqli_num_rows($search_modal_results); ?> patient(s):</p>
-                    <div class="space-y-2">
-                        <?php while ($patient = mysqli_fetch_assoc($search_modal_results)): ?>
-                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white font-bold">
-                                        <?php echo strtoupper(substr($patient['name'], 0, 1)); ?>
+            <div id="searchResultsContainer" class="mt-4 max-h-96 overflow-y-auto space-y-4">
+                <?php
+                $has_registered = $search_modal_results && mysqli_num_rows($search_modal_results) > 0;
+                ?>
+
+                <?php if ($has_registered): ?>
+                    <!-- Registered Patients Section -->
+                    <div>
+                        <p class="text-sm text-gray-600 mb-2">Found <?php echo mysqli_num_rows($search_modal_results); ?> patient(s):</p>
+                        <div class="space-y-2">
+                            <?php while ($patient = mysqli_fetch_assoc($search_modal_results)): ?>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                                            <?php echo strtoupper(substr($patient['name'], 0, 1)); ?>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($patient['name']); ?></p>
+                                            <p class="text-xs text-gray-500"><?php echo $patient['age']; ?> yrs | <?php echo ucfirst($patient['gender']); ?> | <?php echo $patient['phone']; ?></p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($patient['name']); ?></p>
-                                        <p class="text-xs text-gray-500"><?php echo $patient['age']; ?> yrs | <?php echo ucfirst($patient['gender']); ?> | <?php echo $patient['phone']; ?></p>
+                                    <div class="flex space-x-2">
+                                        <a href="appointments/create.php?patient_id=<?php echo $patient['id']; ?>"
+                                            class="px-3 py-1 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition">
+                                            <i class="fas fa-calendar-plus mr-1"></i> Book Appointment
+                                        </a>
+                                        <button onclick="closeAddPatientModal(); openEditModal(<?php echo $patient['id']; ?>, '<?php echo addslashes($patient['name']); ?>', <?php echo $patient['age']; ?>, <?php echo (float)$patient['weight']; ?>, <?php echo (int)$patient['disease']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo addslashes($patient['address']); ?>', '<?php echo $patient['blood_group']; ?>', '<?php echo $patient['status']; ?>')"
+                                            class="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition">
+                                            <i class="fas fa-edit mr-1"></i> Edit
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="flex space-x-2">
-                                    <a href="appointments/create.php?patient_id=<?php echo $patient['id']; ?>"
-                                        class="px-3 py-1 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition">
-                                        <i class="fas fa-calendar-plus mr-1"></i> Book Appointment
-                                    </a>
-                                    <button onclick="closeAddPatientModal(); openEditModal(<?php echo $patient['id']; ?>, '<?php echo addslashes($patient['name']); ?>', <?php echo $patient['age']; ?>, <?php echo (float)$patient['weight']; ?>, <?php echo (int)$patient['disease']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo addslashes($patient['address']); ?>', '<?php echo $patient['blood_group']; ?>', '<?php echo $patient['status']; ?>')"
-                                        class="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition">
-                                        <i class="fas fa-edit mr-1"></i> Edit
-                                    </button>
-                                </div>
-                            </div>
-                        <?php endwhile; ?>
+                            <?php endwhile; ?>
+                        </div>
                     </div>
-                <?php elseif ($search_modal): ?>
+                <?php endif; ?>
+
+                <?php if (!$has_registered && $search_modal): ?>
                     <div class="p-4 bg-yellow-50 rounded-lg text-center">
-                        <p class="text-yellow-800">No patients found without pending appointments.</p>
-                        <button onclick="showTab('new')" class="mt-2 text-blue-600 hover:underline">Register as new patient</button>
+                        <i class="fas fa-user-slash text-3xl text-yellow-400 mb-2"></i>
+                        <p class="text-yellow-800">No patients found for "<?php echo htmlspecialchars($search_modal); ?>".</p>
+                        <button onclick="showTab('new')" class="mt-2 text-blue-600 hover:underline text-sm">Register as new patient instead</button>
                     </div>
-                <?php else: ?>
+                <?php elseif (!$search_modal): ?>
                     <div class="p-8 text-center text-gray-500">
                         <i class="fas fa-search text-4xl mb-2 opacity-50"></i>
-                        <p>Search for existing patient by name or phone number</p>
-                        <p class="text-xs mt-1">Only patients without pending appointments will be shown</p>
+                        <p>Search registered patients by name or phone</p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -387,8 +476,9 @@ include '../includes/sidebar.php';
 
         <!-- New Patient Tab -->
         <div id="newTab" class="tab-content hidden">
-            <form method="POST" action="">
+            <form method="POST" action="" id="newPatientForm">
                 <input type="hidden" name="add_patient" value="1">
+                <input type="hidden" name="redirect_to" id="redirect_to_field" value="appointment">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
@@ -449,15 +539,106 @@ include '../includes/sidebar.php';
                             placeholder="Enter city">
                     </div>
                 </div>
-                <div class="flex justify-end space-x-3 mt-4 pt-4 border-t">
+                <div class="flex flex-col sm:flex-row justify-end gap-2 mt-4 pt-4 border-t">
                     <button type="button" onclick="closeAddPatientModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
                         Cancel
                     </button>
-                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-lg hover:shadow-lg transition">
+                    <button type="button" onclick="submitNewPatient('appointment')" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-lg hover:shadow-lg transition flex items-center justify-center">
                         <i class="fas fa-calendar-plus mr-2"></i> Register & Book Appointment
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Arrive Call Booking Modal -->
+<div id="callArrivalModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-lg bg-white">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b">
+            <h3 class="text-xl font-semibold text-gray-800">
+                <i class="fas fa-phone-alt mr-2 text-purple-600"></i>
+                Arrive Calling Patient
+            </h3>
+            <button onclick="closeCallArrivalModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="" id="searchCallForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Search Call Booking</label>
+                <div class="flex gap-2">
+                    <input type="text" name="search_call_modal" id="searchCallInput"
+                        placeholder="Enter caller name or phone..."
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+                        value="<?php echo htmlspecialchars($search_call_modal); ?>">
+                    <button type="submit" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition">
+                        <i class="fas fa-search mr-1"></i> Search
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div id="callSearchResultsContainer" class="mt-4 max-h-96 overflow-y-auto space-y-4">
+            <?php if ($call_appt_results && mysqli_num_rows($call_appt_results) > 0): ?>
+                <div class="space-y-2">
+                    <?php while ($ca = mysqli_fetch_assoc($call_appt_results)): ?>
+                        <div class="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                                    <?php echo strtoupper(substr($ca['patient_name'], 0, 1)); ?>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800 text-sm">
+                                        <?php echo htmlspecialchars($ca['patient_name']); ?>
+                                        <?php if ($ca['linked_patient_id']): ?>
+                                            <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] rounded-full uppercase font-bold">
+                                                Returning (ID: #<?php echo $ca['linked_patient_id']; ?>)
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-[10px] rounded-full uppercase font-bold">
+                                                New Patient
+                                            </span>
+                                        <?php endif; ?>
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        <i class="fas fa-phone mr-1"></i><?php echo htmlspecialchars($ca['phone']); ?>
+                                    </p>
+                                    <p class="text-xs text-purple-700 mt-0.5">
+                                        <i class="fas fa-user-md mr-1"></i><?php echo htmlspecialchars($ca['doctor_name']); ?> | 
+                                        <i class="fas fa-calendar mr-1"></i><?php echo date('d M Y', strtotime($ca['appointment_date'])); ?>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <?php if ($ca['linked_patient_id']): ?>
+                                    <button onclick="closeCallArrivalModal(); openEditModal('<?php echo $ca['linked_patient_id']; ?>', '<?php echo addslashes($ca['patient_name']); ?>', '<?php echo (int)$ca['age']; ?>', '<?php echo (float)$ca['weight']; ?>', '<?php echo (int)$ca['disease_id']; ?>', '<?php echo addslashes($ca['gender']); ?>', '<?php echo addslashes($ca['phone']); ?>', '<?php echo addslashes($ca['city']); ?>', '<?php echo addslashes($ca['blood_group']); ?>', '<?php echo addslashes($ca['patient_status']); ?>')"
+                                        class="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition" title="Edit Patient Info">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                <?php endif; ?>
+                                <a href="calls/index.php?action=arrive&id=<?php echo $ca['call_appt_id']; ?>"
+                                    onclick="return confirm('Confirm arrival of <?php echo addslashes($ca['patient_name']); ?>?')"
+                                    class="px-3 py-2 bg-purple-600 text-white text-sm rounded-lg hover:shadow-md transition">
+                                    <i class="fas fa-walking mr-1"></i> Arrived
+                                </a>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+            <?php elseif ($search_call_modal): ?>
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-phone-slash text-4xl mb-2 opacity-50"></i>
+                    <p>No pending call bookings found for "<?php echo htmlspecialchars($search_call_modal); ?>"</p>
+                    <a href="calls/create.php" class="text-purple-600 hover:underline text-sm mt-2 inline-block">Create new call booking</a>
+                </div>
+            <?php else: ?>
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-phone text-4xl mb-2 opacity-50"></i>
+                    <p>Search for patients who booked via phone call</p>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -567,18 +748,24 @@ include '../includes/sidebar.php';
         if (tab === 'existing') {
             existingTab.classList.remove('hidden');
             newTab.classList.add('hidden');
-            existingBtn.classList.add('text-blue-600', 'border-blue-600');
+            existingBtn.classList.add('text-blue-600', 'border-blue-600', 'border-b-2');
             existingBtn.classList.remove('text-gray-500');
-            newBtn.classList.remove('text-blue-600', 'border-blue-600');
+            newBtn.classList.remove('text-blue-600', 'border-blue-600', 'border-b-2');
             newBtn.classList.add('text-gray-500');
         } else {
             existingTab.classList.add('hidden');
             newTab.classList.remove('hidden');
-            newBtn.classList.add('text-blue-600', 'border-blue-600');
+            newBtn.classList.add('text-blue-600', 'border-blue-600', 'border-b-2');
             newBtn.classList.remove('text-gray-500');
-            existingBtn.classList.remove('text-blue-600', 'border-blue-600');
+            existingBtn.classList.remove('text-blue-600', 'border-blue-600', 'border-b-2');
             existingBtn.classList.add('text-gray-500');
         }
+    }
+
+    // Submit new patient form with redirect target
+    function submitNewPatient(redirectTo) {
+        document.getElementById('redirect_to_field').value = redirectTo;
+        document.getElementById('newPatientForm').submit();
     }
 
     // Add Patient Modal Functions
@@ -619,8 +806,8 @@ include '../includes/sidebar.php';
                 document.getElementById('searchResultsContainer').innerHTML = `
                     <div class="p-8 text-center text-gray-500">
                         <i class="fas fa-search text-4xl mb-2 opacity-50"></i>
-                        <p>Search for existing patient by name or phone number</p>
-                        <p class="text-xs mt-1">Only patients without pending appointments will be shown</p>
+                        <p>Search by name or phone number</p>
+                        <p class="text-xs mt-1">Shows both registered patients and unregistered call-booked patients</p>
                     </div>
                 `;
             }
@@ -630,6 +817,27 @@ include '../includes/sidebar.php';
     function closeAddPatientModal() {
         document.getElementById('addPatientModal').classList.add('hidden');
     }
+
+    // Call Arrival Modal Functions
+    function openCallArrivalModal() {
+        document.getElementById('callArrivalModal').classList.remove('hidden');
+        document.getElementById('searchCallInput').focus();
+    }
+
+    function closeCallArrivalModal() {
+        document.getElementById('callArrivalModal').classList.add('hidden');
+    }
+
+    // Auto-open modals if search was performed
+    window.onload = function() {
+        <?php if ($search_modal): ?>
+            document.getElementById('addPatientModal').classList.remove('hidden');
+            showTab('existing');
+        <?php endif; ?>
+        <?php if ($search_call_modal): ?>
+            document.getElementById('callArrivalModal').classList.remove('hidden');
+        <?php endif; ?>
+    };
 
     // Edit Modal Functions
     function openEditModal(id, name, age, weight, disease, gender, phone, city, bloodGroup, status) {
