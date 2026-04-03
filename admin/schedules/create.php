@@ -65,6 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_schedule'])) {
     }
 }
 
+// Catch Doctor ID from URL
+$pre_doctor_id = isset($_GET['doctor_id']) ? intval($_GET['doctor_id']) : 0;
+
 // Fetch Doctors
 $doctors_query = "SELECT d.id, u.name, d.specialization FROM doctors d JOIN users u ON d.user_id = u.id WHERE u.status = 'active' ORDER BY u.name ASC";
 $doctors_result = mysqli_query($conn, $doctors_query);
@@ -104,20 +107,31 @@ include '../../includes/sidebar.php';
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Doctor *</label>
-                                <select name="doctor_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                                <?php if ($pre_doctor_id > 0): ?>
+                                    <input type="hidden" name="doctor_id" value="<?php echo $pre_doctor_id; ?>">
+                                <?php endif; ?>
+                                <select <?php echo $pre_doctor_id > 0 ? 'disabled' : 'name="doctor_id"'; ?> required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition <?php echo $pre_doctor_id > 0 ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''; ?>">
                                     <option value="">-- Choose Doctor --</option>
-                                    <?php while ($doc = mysqli_fetch_assoc($doctors_result)): ?>
-                                        <option value="<?php echo $doc['id']; ?>">
+                                    <?php 
+                                    mysqli_data_seek($doctors_result, 0);
+                                    while ($doc = mysqli_fetch_assoc($doctors_result)): 
+                                    ?>
+                                        <option value="<?php echo $doc['id']; ?>" <?php echo ($pre_doctor_id == $doc['id']) ? 'selected' : ''; ?>>
                                             <?php echo htmlspecialchars($doc['name']); ?> (<?php echo htmlspecialchars($doc['specialization']); ?>)
                                         </option>
                                     <?php endwhile; ?>
                                 </select>
                             </div>
-                            <div class="bg-blue-50 p-4 rounded-lg flex items-start">
-                                <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
-                                <p class="text-xs text-blue-700 leading-relaxed">
-                                    Select the doctor first to define their clinical availability. You can assign morning or evening shifts for multiple days at once.
-                                </p>
+                            <div class="bg-blue-50 p-4 rounded-lg flex items-start text-blue-700">
+                                <i class="fas fa-info-circle mt-1 mr-3 text-blue-500"></i>
+                                <div class="text-xs leading-relaxed">
+                                    <?php if ($pre_doctor_id > 0): ?>
+                                        <p class="font-bold mb-1">Pre-selected Mode</p>
+                                        You are currently assigning a schedule for the selected doctor. Simply pick your shifts and timings below.
+                                    <?php else: ?>
+                                        Select the doctor first to define their clinical availability. You can assign morning or evening shifts for multiple days at once.
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>

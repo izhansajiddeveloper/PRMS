@@ -167,7 +167,7 @@ include '../../includes/sidebar.php';
                         <!-- Select Doctor First -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Select Doctor *</label>
-                            <select name="doctor_id" id="doctor_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                            <select name="doctor_id" id="doctor_id" required class="w-full">
                                 <option value="">-- Select Doctor --</option>
                                 <?php foreach ($doctors as $doc): ?>
                                     <option value="<?php echo $doc['id']; ?>" data-catid="<?php echo $doc['category_id']; ?>" data-catname="<?php echo htmlspecialchars($doc['category_name']); ?>">
@@ -370,10 +370,17 @@ include '../../includes/sidebar.php';
         }
     });
 
-    // Pre-trigger change if elements have value (useful if validation fails and post is kept)
     <?php if (isset($_POST['doctor_id'])): ?>
         // This is complex to re-hydrate properly due to async JS, but typical form resets on success anyway.
     <?php endif; ?>
+
+    // Initialize SlimSelect
+    document.addEventListener('DOMContentLoaded', () => {
+        new SlimSelect({
+            select: '#doctor_id',
+            placeholder: 'Search for a doctor...'
+        });
+    });
 </script>
 
 

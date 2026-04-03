@@ -525,7 +525,7 @@ include '../includes/sidebar.php';
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Disease / Speciality *</label>
-                        <select name="disease" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                        <select name="disease" id="new_patient_disease" required class="w-full">
                             <option value="">Search and select disease...</option>
                             <?php foreach ($categories_list as $cat): ?>
                                 <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
@@ -704,7 +704,7 @@ include '../includes/sidebar.php';
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Disease / Speciality *</label>
-                    <select name="disease" id="edit_disease" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                    <select name="disease" id="edit_disease" required class="w-full">
                         <option value="">Search and select disease...</option>
                         <?php foreach ($categories_list as $cat): ?>
                             <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
@@ -900,4 +900,17 @@ include '../includes/sidebar.php';
             editModal.classList.add('hidden');
         }
     }
+
+    // Initialize SlimSelect for all relevant dropdowns
+    document.addEventListener('DOMContentLoaded', () => {
+        new SlimSelect({
+            select: '#new_patient_disease',
+            placeholder: 'Search for clinical category...'
+        });
+        
+        new SlimSelect({
+            select: '#edit_disease',
+            placeholder: 'Search for clinical category...'
+        });
+    });
 </script>

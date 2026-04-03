@@ -47,10 +47,16 @@ if (isset($_GET['doctor_id'])) {
         }
         echo '</tbody>';
         echo '</table>';
+        echo '<div class="mt-6 flex justify-center">';
+        echo '<a href="../../schedules/create.php?doctor_id=' . $doctor_id . '" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-xs font-bold shadow-sm">';
+        echo '<i class="fas fa-plus mr-2"></i>Add New Shift / Day';
+        echo '</a>';
+        echo '</div>';
     } else {
         echo '<div class="text-center py-8 text-gray-500">';
         echo '<i class="fas fa-calendar-times text-3xl mb-2 opacity-30"></i>';
         echo '<p>No schedule found for this doctor.</p>';
+        echo '<a href="../../schedules/create.php?doctor_id=' . $doctor_id . '" class="text-blue-500 hover:underline text-xs mt-2 inline-block font-bold">Assign First Schedule</a>';
         echo '</div>';
     }
 }

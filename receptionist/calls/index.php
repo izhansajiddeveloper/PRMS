@@ -69,31 +69,31 @@ if (isset($_GET['action']) && $_GET['action'] == 'arrive' && isset($_GET['id']))
                 mysqli_stmt_execute($up_stmt);
             }
 
-            // Create Booked Appointment
+            // Prepare Appointment Data for session (No insertion until payment)
             $appointment_date = $call['appointment_date'] ? $call['appointment_date'] : date('Y-m-d H:i:s');
             $symptoms = "Walk-in (Call Booking)";
             
-            $insert_appt = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, status, symptoms, category_id, consultation_fee, shift_type, patient_number, time_slot, created_at) 
-                            VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, NOW())";
-            $stmt = mysqli_prepare($conn, $insert_appt);
-            mysqli_stmt_bind_param($stmt, "iisssdsss", $patient_id, $call['doctor_id'], $appointment_date, $symptoms, $call['disease_id'], $call['consultation_fee'], $call['shift_type'], $call['patient_number'], $call['time_slot']);
-            mysqli_stmt_execute($stmt);
-            $appointment_id = mysqli_insert_id($conn);
-            
-            // Mark Call Visited
-            $update_call = "UPDATE call_appointments SET status = 'visited' WHERE id = ?";
-            $uc_stmt = mysqli_prepare($conn, $update_call);
-            mysqli_stmt_bind_param($uc_stmt, "i", $call_id);
-            mysqli_stmt_execute($uc_stmt);
-            
-            mysqli_commit($conn);
-            setFlashMessage("Patient arrived! Appointment instantly booked. Plase collect fee.", "success");
-            header("Location: ../payments/create.php?appointment_id=" . $appointment_id);
+            $_SESSION['pending_appointment'] = [
+                'patient_id' => $patient_id,
+                'doctor_id' => $call['doctor_id'],
+                'appointment_date' => $appointment_date,
+                'symptoms' => $symptoms,
+                'category_id' => $call['disease_id'],
+                'consultation_fee' => $call['consultation_fee'],
+                'shift_type' => $call['shift_type'],
+                'patient_number' => $call['patient_number'],
+                'time_slot' => $call['time_slot'],
+                'call_id' => $call_id, // To mark visited later
+                'type' => 'call'
+            ];
+
+            setFlashMessage("Patient arrived! Proceeding to fee collection to finalize booking.", "success");
+            header("Location: ../payments/create.php?source=call_arrival");
             exit();
 
         } catch (Exception $e) {
             mysqli_rollback($conn);
-            setFlashMessage("Failed to process arrival.", "error");
+            setFlashMessage("Failed to process arrival: " . $e->getMessage(), "error");
             header("Location: index.php");
             exit();
         }

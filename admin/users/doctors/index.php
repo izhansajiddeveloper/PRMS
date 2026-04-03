@@ -200,13 +200,11 @@ include '../../../includes/sidebar.php';
                                                 <i class="fas fa-edit text-xs"></i>
                                             </a>
 
-                                            <?php if ($doctor['schedule_count'] == 0): ?>
-                                                <a href="../../schedules/create.php?doctor_id=<?php echo $doctor['id']; ?>"
-                                                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white shadow-sm transition-all"
-                                                    title="Add Schedule">
-                                                    <i class="fas fa-plus text-xs"></i>
-                                                </a>
-                                            <?php endif; ?>
+                                            <a href="../../schedules/create.php?doctor_id=<?php echo $doctor['id']; ?>"
+                                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white shadow-sm transition-all"
+                                                title="Add New Schedule/Shift">
+                                                <i class="fas fa-plus text-xs"></i>
+                                            </a>
 
                                             <a href="javascript:void(0)"
                                                 onclick="showSchedule(<?php echo $doctor['id']; ?>, '<?php echo addslashes($doctor['name']); ?>')"

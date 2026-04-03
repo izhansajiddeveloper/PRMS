@@ -97,6 +97,12 @@ if (isset($_GET['cancel']) && isset($_GET['id'])) {
 // Get filter parameters
 $date_filter = isset($_GET['date']) ? mysqli_real_escape_string($conn, $_GET['date']) : '';
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
+$patient_filter = isset($_GET['patient_id']) ? intval($_GET['patient_id']) : 0;
+$doctor_filter = isset($_GET['doctor_id']) ? intval($_GET['doctor_id']) : 0;
+
+// Fetch all patients and doctors for the searchable filter
+$all_patients = mysqli_query($conn, "SELECT id, name, phone FROM patients ORDER BY name ASC");
+$all_doctors = mysqli_query($conn, "SELECT d.id, u.name as doctor_name FROM doctors d JOIN users u ON d.user_id = u.id WHERE d.status = 'active' ORDER BY u.name ASC");
 
 // Build query
 $where_clauses = ["1=1"];
@@ -105,6 +111,12 @@ if ($date_filter) {
 }
 if ($status_filter) {
     $where_clauses[] = "a.status = '$status_filter'";
+}
+if ($patient_filter) {
+    $where_clauses[] = "a.patient_id = $patient_filter";
+}
+if ($doctor_filter) {
+    $where_clauses[] = "a.doctor_id = $doctor_filter";
 }
 
 $where_sql = "WHERE " . implode(" AND ", $where_clauses);
@@ -240,11 +252,33 @@ include '../../includes/sidebar.php';
                 </div>
                 <div>
                     <label class="block text-xs text-gray-500 mb-1">Status</label>
-                    <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                    <select name="status" id="status_filter" class="w-full">
                         <option value="">All Status</option>
                         <option value="pending" <?php echo $status_filter == 'pending' ? 'selected' : ''; ?>>Pending</option>
                         <option value="completed" <?php echo $status_filter == 'completed' ? 'selected' : ''; ?>>Completed</option>
                         <option value="cancelled" <?php echo $status_filter == 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                    </select>
+                </div>
+                <div class="min-w-[200px]">
+                    <label class="block text-xs text-gray-500 mb-1">Patient</label>
+                    <select name="patient_id" id="patient_filter" class="w-full">
+                        <option value="">All Patients</option>
+                        <?php mysqli_data_seek($all_patients, 0); while ($p = mysqli_fetch_assoc($all_patients)): ?>
+                            <option value="<?php echo $p['id']; ?>" <?php echo $patient_filter == $p['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($p['name']); ?> (<?php echo htmlspecialchars($p['phone']); ?>)
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+                <div class="min-w-[200px]">
+                    <label class="block text-xs text-gray-500 mb-1">Doctor</label>
+                    <select name="doctor_id" id="doctor_filter" class="w-full">
+                        <option value="">All Doctors</option>
+                        <?php mysqli_data_seek($all_doctors, 0); while ($d = mysqli_fetch_assoc($all_doctors)): ?>
+                            <option value="<?php echo $d['id']; ?>" <?php echo $doctor_filter == $d['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($d['doctor_name']); ?>
+                            </option>
+                        <?php endwhile; ?>
                     </select>
                 </div>
                 <div>
@@ -417,4 +451,20 @@ include '../../includes/sidebar.php';
             window.location.href = `?cancel=${id}&id=${id}`;
         }
     }
+
+    // Initialize SlimSelect for all relevant dropdowns
+    document.addEventListener('DOMContentLoaded', () => {
+        new SlimSelect({
+            select: '#status_filter',
+            showSearch: false
+        });
+        new SlimSelect({
+            select: '#patient_filter',
+            placeholder: 'Search patient name or phone...'
+        });
+        new SlimSelect({
+            select: '#doctor_filter',
+            placeholder: 'Search doctor name...'
+        });
+    });
 </script>

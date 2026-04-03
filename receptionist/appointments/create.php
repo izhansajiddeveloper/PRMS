@@ -54,8 +54,12 @@ if ($selected_patient_id > 0) {
 
 // Get doctors for the assigned category only
 if ($assigned_category_id > 0) {
+    $current_day = date('l');
     $doctors_query = "SELECT d.id, d.user_id, d.specialization, d.consultation_fee, d.experience_years, d.qualification,
-                             u.name as doctor_name, u.email, u.phone
+                             u.name as doctor_name, u.email, u.phone,
+                             COALESCE((SELECT SUM(max_appointments) FROM doctor_schedules WHERE doctor_id = d.id AND day_of_week = '$current_day' AND status = 'active'), 0) as total_capacity,
+                             (SELECT COUNT(*) FROM appointments WHERE doctor_id = d.id AND DATE(appointment_date) = CURDATE() AND status != 'cancelled') + 
+                             (SELECT COUNT(*) FROM call_appointments WHERE doctor_id = d.id AND DATE(appointment_date) = CURDATE() AND status != 'cancelled') as booked_count
                       FROM doctors d
                       JOIN users u ON d.user_id = u.id
                       WHERE d.category_id = ? 
@@ -174,33 +178,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_appointment'])) {
                 if (mysqli_stmt_num_rows($stmt) > 0) {
                     $error = "This patient already has a pending appointment with this doctor! Please wait for it to be completed or cancelled.";
                 } else {
-                    // Calculate token number
-                    $num_query = "SELECT 
-                                    (SELECT COUNT(*) FROM appointments WHERE doctor_id = ? AND DATE(appointment_date) = CURDATE() AND shift_type = ? AND status != 'cancelled') +
-                                    (SELECT COUNT(*) FROM call_appointments WHERE doctor_id = ? AND DATE(created_at) = CURDATE() AND shift_type = ? AND status != 'cancelled') 
-                                as total_count";
-                    $n_stmt = mysqli_prepare($conn, $num_query);
-                    mysqli_stmt_bind_param($n_stmt, "isis", $doctor_id, $shift_type, $doctor_id, $shift_type);
-                    mysqli_stmt_execute($n_stmt);
-                    $n_result = mysqli_stmt_get_result($n_stmt);
-                    $n_data = mysqli_fetch_assoc($n_result);
-                    $patient_number = $n_data['total_count'] + 1;
+                    // Collect appointment data for session (No DB insertion yet)
+                    $_SESSION['pending_appointment'] = [
+                        'patient_id' => $patient_id,
+                        'doctor_id' => $doctor_id,
+                        'appointment_date' => $full_datetime,
+                        'symptoms' => $symptoms,
+                        'category_id' => $assigned_category_id,
+                        'consultation_fee' => $consultation_fee,
+                        'shift_type' => $shift_type,
+                        'type' => 'walkin'
+                    ];
 
-                    // Insert appointment
-                    $insert_query = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, status, symptoms, category_id, consultation_fee, shift_type, patient_number, created_at) 
-                                     VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, NOW())";
-                    $stmt = mysqli_prepare($conn, $insert_query);
-                    mysqli_stmt_bind_param($stmt, "iisssdss", $patient_id, $doctor_id, $full_datetime, $symptoms, $assigned_category_id, $consultation_fee, $shift_type, $patient_number);
-
-                    if (mysqli_stmt_execute($stmt)) {
-                        $appointment_id = mysqli_insert_id($conn);
-                        $success = "Appointment booked successfully!";
-                        // Redirect to Payment Collection directly
-                        header("Location: ../payments/create.php?appointment_id=" . $appointment_id . "&success=1");
-                        exit();
-                    } else {
-                        $error = "Failed to book appointment: " . mysqli_error($conn);
-                    }
+                    $success = "Booking details saved. Proceeding to payment...";
+                    header("Location: ../payments/create.php?source=direct_booking");
+                    exit();
                 }
             }
         }
@@ -293,8 +285,10 @@ include '../../includes/sidebar.php';
                                                 <div>
                                                     <h3 class="font-semibold text-gray-800"> <?php echo htmlspecialchars($doctor['doctor_name']); ?></h3>
                                                     <p class="text-sm text-gray-600"><?php echo htmlspecialchars($doctor['specialization']); ?></p>
-                                                    <p class="text-sm text-gray-500">Experience: <?php echo $doctor['experience_years']; ?> years</p>
-                                                    <p class="text-sm text-gray-500">Qualification: <?php echo htmlspecialchars($doctor['qualification']); ?></p>
+                                                    <div class="flex items-center gap-2 mt-1">
+                                                        <span class="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full border border-blue-100">Exp: <?php echo $doctor['experience_years']; ?> yrs</span>
+                                                        <span class="text-xs px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full border border-purple-100"><?php echo htmlspecialchars($doctor['qualification']); ?></span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="text-right">
@@ -353,8 +347,20 @@ include '../../includes/sidebar.php';
                             </div>
 
                             <div id="availability-message" class="mb-4 hidden">
-                                <div class="bg-blue-50 border-l-4 border-blue-500 p-3">
+                                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 flex justify-between items-center">
                                     <p class="text-sm text-blue-700"></p>
+                                    <div id="dynamic-load-info" class="hidden flex items-center gap-3">
+                                        <div class="bg-white border rounded-lg px-2 py-1 flex items-center shadow-sm">
+                                            <div class="mr-2 pr-2 border-r">
+                                                <p class="text-[8px] uppercase text-gray-400 font-bold leading-none mb-0.5">Slots</p>
+                                                <p class="text-xs font-black text-gray-700 leading-none" id="slot-count-ui">0/0</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-[8px] uppercase text-blue-400 font-bold leading-none mb-0.5">Next No.</p>
+                                                <p class="text-xs font-black text-blue-600 leading-none" id="next-no-ui">(1)</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -363,14 +369,20 @@ include '../../includes/sidebar.php';
                                 <div class="space-y-2">
                                     <?php
                                     $schedule_data = [];
+                                    $current_day_name = date('l');
                                     mysqli_data_seek($doctor_schedule, 0);
                                     while ($schedule = mysqli_fetch_assoc($doctor_schedule)):
                                         $schedule_data[] = $schedule;
+                                        $is_today_schedule = ($schedule['day_of_week'] === $current_day_name);
                                     ?>
-                                        <div class="flex justify-between items-center text-sm">
-                                            <span class="font-medium text-gray-700"><?php echo $schedule['day_of_week']; ?> (<?php echo $schedule['shift_type']; ?> Shift):</span>
+                                        <div class="flex justify-between items-center text-sm <?php echo $is_today_schedule ? 'bg-blue-50 -mx-4 px-4 py-1 border-l-4 border-blue-500' : ''; ?>">
+                                            <span class="font-medium text-gray-700">
+                                                <?php echo $schedule['day_of_week']; ?> 
+                                                <?php if($is_today_schedule) echo '<span class="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded ml-1">TODAY</span>'; ?>
+                                                (<?php echo $schedule['shift_type']; ?> Shift):
+                                            </span>
                                             <span class="text-gray-600"><?php echo date('h:i A', strtotime($schedule['start_time'])); ?> - <?php echo date('h:i A', strtotime($schedule['end_time'])); ?></span>
-                                            <span class="text-xs text-gray-500">Max: <?php echo $schedule['max_appointments']; ?> patients</span>
+                                            <span class="text-xs text-gray-500 font-bold">Max: <?php echo $schedule['max_appointments']; ?></span>
                                         </div>
                                     <?php endwhile; ?>
                                 </div>
@@ -465,12 +477,17 @@ include '../../includes/sidebar.php';
                     const month = String(futureDate.getMonth() + 1).padStart(2, '0');
                     const day = String(futureDate.getDate()).padStart(2, '0');
                     const dateStr = `${year}-${month}-${day}`;
-                    const displayDate = futureDate.toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
+                    const isToday = i === 0;
+                    let displayDate = futureDate.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    }) + ' ' + dayName;
+
+                    if (isToday) {
+                        displayDate += ' (Today)';
+                    }
+
                     const option = document.createElement('option');
                     option.value = dateStr;
                     option.textContent = displayDate;
@@ -525,6 +542,19 @@ include '../../includes/sidebar.php';
                         timeSlotSelect.disabled = false;
                         timeSlotSelect.classList.remove('bg-gray-50', 'cursor-not-allowed');
                         timeSlotSelect.classList.add('bg-white');
+
+                        // Show dynamic load info for the selected date
+                        const loadInfo = document.getElementById('dynamic-load-info');
+                        const slotCountUI = document.getElementById('slot-count-ui');
+                        const nextNoUI = document.getElementById('next-no-ui');
+                        
+                        if (loadInfo && slotCountUI && nextNoUI) {
+                            slotCountUI.textContent = `${data.booked_count}/${data.max_limit}`;
+                            nextNoUI.textContent = `(${data.booked_count + 1})`;
+                            loadInfo.classList.remove('hidden');
+                            availabilityMsg.querySelector('p').textContent = `Booking Load for ${new Date(selectedDate).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}:`;
+                            availabilityMsg.classList.remove('hidden');
+                        }
                     }
                 } else {
                     timeSlotSelect.innerHTML = '<option value="">-- Error --</option>';
