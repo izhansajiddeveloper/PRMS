@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 03, 2026 at 09:25 AM
+-- Generation Time: Apr 06, 2026 at 11:19 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -68,7 +68,14 @@ INSERT INTO `appointments` (`id`, `patient_id`, `doctor_id`, `appointment_date`,
 (9, 6, 38, '2026-04-02 14:00:00', 'Amet adipisci est p', 19, 1900.00, 'Afternoon', NULL, 1, 'pending', '2026-04-03 06:13:26'),
 (10, 7, 2, '2026-04-02 10:30:00', '-----', 1, 1400.00, 'Morning', NULL, 1, 'pending', '2026-04-03 06:14:11'),
 (11, 8, 34, '2026-04-02 15:00:00', 'Walk-in (Call Booking)', 17, 1100.00, 'Afternoon', '15', 1, 'pending', '2026-04-03 06:15:07'),
-(12, 9, 36, '2026-04-02 17:00:00', 'Walk-in (Call Booking)', 18, 1500.00, 'Evening', '17', 1, 'pending', '2026-04-03 06:33:21');
+(12, 9, 36, '2026-04-02 17:00:00', 'Walk-in (Call Booking)', 18, 1500.00, 'Evening', '17', 1, 'pending', '2026-04-03 06:33:21'),
+(13, 10, 25, '2026-04-03 14:00:00', 'Walk-in (Call Booking)', 13, 1500.00, 'Afternoon', '14', 1, 'pending', '2026-04-03 10:38:48'),
+(14, 11, 27, '2026-04-06 09:00:00', 'Walk-in (Call Booking)', 14, 1500.00, 'Morning', '9', 1, 'pending', '2026-04-03 10:42:16'),
+(15, 12, 10, '2026-04-04 10:00:00', '--', 5, 1200.00, 'Morning', NULL, 1, 'pending', '2026-04-03 10:58:30'),
+(16, 13, 10, '2026-04-04 10:30:00', 'Walk-in (Call Booking)', 5, 1200.00, 'Morning', '10', 2, 'pending', '2026-04-03 10:59:42'),
+(17, 14, 10, '2026-04-04 11:00:00', '--\\r\\n', 5, 1200.00, 'Morning', NULL, 2, 'pending', '2026-04-03 11:08:58'),
+(21, 15, 10, '2026-04-04 11:30:00', '------', 5, 1200.00, 'Morning', '11:30:00', 5, 'pending', '2026-04-03 11:26:20'),
+(22, 16, 7, '2026-04-06 09:00:00', '----------', 4, 1000.00, 'Morning', '09:00:00', 1, 'pending', '2026-04-04 13:10:03');
 
 -- --------------------------------------------------------
 
@@ -100,7 +107,10 @@ CREATE TABLE `call_appointments` (
 INSERT INTO `call_appointments` (`id`, `patient_name`, `phone`, `doctor_id`, `disease_id`, `call_date`, `appointment_date`, `status`, `notes`, `created_at`, `patient_number`, `shift_type`, `time_slot`, `patient_id`) VALUES
 (1, 'Basia Castro', '+1 (259) 489-6683', 12, 6, '2026-04-02 23:14:39', '2026-04-02 16:00:00', 'pending', 'Quos ut cupiditate a', '2026-04-03 06:14:39', 1, 'Evening', '16', NULL),
 (2, 'Alice Rogers', '+1 (878) 933-6902', 34, 17, '2026-04-02 23:14:55', '2026-04-02 15:00:00', 'visited', 'Quibusdam id irure m', '2026-04-03 06:14:55', 1, 'Afternoon', '15', 8),
-(3, 'Shani', '05215456', 36, 18, '2026-04-02 23:32:39', '2026-04-02 17:00:00', 'visited', '---', '2026-04-03 06:32:39', 1, 'Evening', '17', 9);
+(3, 'Shani', '05215456', 36, 18, '2026-04-02 23:32:39', '2026-04-02 17:00:00', 'visited', '---', '2026-04-03 06:32:39', 1, 'Evening', '17', 9),
+(4, 'Imogene Shaw', '+1 (234) 569-2301', 25, 13, '2026-04-03 03:38:34', '2026-04-03 14:00:00', 'visited', 'Eum Nam qui non quia', '2026-04-03 10:38:34', 1, 'Afternoon', '14', 10),
+(5, 'Zahir Medina', '+1 (809) 246-1207', 27, 14, '2026-04-03 03:42:06', '2026-04-06 09:00:00', 'visited', 'Soluta ullamco eiusm', '2026-04-03 10:42:06', 1, 'Morning', '9', 11),
+(6, 'Urielle Rhodes', '+1 (672) 972-6024', 10, 5, '2026-04-03 03:59:03', '2026-04-04 10:30:00', 'visited', 'Est fugiat quisquam ', '2026-04-03 10:59:03', 2, 'Morning', '10', 13);
 
 -- --------------------------------------------------------
 
@@ -212,7 +222,9 @@ INSERT INTO `doctors` (`id`, `user_id`, `specialization`, `category_id`, `status
 (38, 40, 'Radiation Oncology', 19, 'active', 1900.00, 20, 8, 'MBBS, DNB Oncology', 'Radiation therapy cancer specialist', '2026-04-01 05:52:40', '2026-04-01 05:52:40'),
 (39, 41, 'Elderly Care', 20, 'active', 1400.00, 20, 9, 'MBBS, MD Geriatrics', 'Senior citizen health and wellness specialist', '2026-04-01 05:52:40', '2026-04-01 05:52:40'),
 (40, 42, 'Dementia Specialist', 20, 'active', 1300.00, 20, 6, 'MBBS, DNB Geriatrics', 'Memory loss and dementia care specialist', '2026-04-01 05:52:40', '2026-04-01 05:52:40'),
-(43, 67, 'test', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-03 07:15:14', '2026-04-03 07:15:14');
+(43, 67, 'test', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-03 07:15:14', '2026-04-03 07:15:14'),
+(44, 68, 'Cardiologist', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-03 11:14:33', '2026-04-03 11:14:33'),
+(45, 69, 'Cardiologist', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-04 13:13:41', '2026-04-04 13:13:41');
 
 -- --------------------------------------------------------
 
@@ -378,7 +390,17 @@ INSERT INTO `doctor_schedules` (`id`, `doctor_id`, `day_of_week`, `shift_type`, 
 (140, 43, 'Sunday', 'Morning', '09:00:00', '00:00:13', 15, 'active', '---', '2026-04-03 07:16:01', '2026-04-03 07:16:01'),
 (141, 43, 'Monday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-03 07:16:39', '2026-04-03 07:16:39'),
 (142, 43, 'Wednesday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-03 07:16:39', '2026-04-03 07:16:39'),
-(143, 43, 'Friday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-03 07:16:39', '2026-04-03 07:16:39');
+(143, 43, 'Friday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-03 07:16:39', '2026-04-03 07:16:39'),
+(144, 44, 'Monday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '---', '2026-04-03 11:16:32', '2026-04-03 11:16:32'),
+(145, 44, 'Tuesday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '---', '2026-04-03 11:16:32', '2026-04-03 11:16:32'),
+(146, 44, 'Wednesday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '---', '2026-04-03 11:16:32', '2026-04-03 11:16:32'),
+(147, 44, 'Thursday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '---', '2026-04-03 11:16:32', '2026-04-03 11:16:32'),
+(148, 44, 'Friday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '---', '2026-04-03 11:16:32', '2026-04-03 11:16:32'),
+(149, 44, 'Saturday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '---', '2026-04-03 11:16:32', '2026-04-03 11:16:32'),
+(150, 44, 'Sunday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '---', '2026-04-03 11:16:32', '2026-04-03 11:16:32'),
+(151, 45, 'Monday', 'Morning', '09:00:00', '00:00:13', 15, 'active', '---', '2026-04-04 13:16:17', '2026-04-04 13:16:17'),
+(152, 45, 'Wednesday', 'Morning', '09:00:00', '00:00:13', 15, 'active', '---', '2026-04-04 13:16:17', '2026-04-04 13:16:17'),
+(153, 45, 'Friday', 'Morning', '09:00:00', '00:00:13', 15, 'active', '---', '2026-04-04 13:16:17', '2026-04-04 13:16:17');
 
 -- --------------------------------------------------------
 
@@ -408,7 +430,14 @@ INSERT INTO `patients` (`id`, `name`, `age`, `weight`, `disease`, `gender`, `pho
 (6, 'Rafael Hayden', 84, 68.00, 19, 'male', '+1 (473) 917-3347', 'Omnis elit rem nihi', 'AB-', 'active', '2026-04-03 06:13:06'),
 (7, 'Aiko Shields', 68, 71.00, 1, 'female', '+1 (189) 881-8116', 'Id quae laborum eaqu', 'AB+', 'active', '2026-04-03 06:13:59'),
 (8, 'Izhan Sajid', 29, 58.00, 17, 'male', '03177990549', 'Kohat', 'B-', 'active', '2026-04-03 06:15:07'),
-(9, 'Izhan Sajid', 56, 57.00, 18, 'male', '03177990549', 'Kohat', 'A+', 'active', '2026-04-03 06:33:21');
+(9, 'Izhan Sajid', 56, 57.00, 18, 'male', '03177990549', 'Kohat', 'A+', 'active', '2026-04-03 06:33:21'),
+(10, 'Imogene Shaw', 22, 89.00, 13, 'male', '+1 (234) 569-2301', NULL, 'A+', 'active', '2026-04-03 10:38:48'),
+(11, 'Zahir Medina', 22, 65.00, 14, 'male', '+1 (809) 246-1207', 'kohat', 'A+', 'active', '2026-04-03 10:42:16'),
+(12, 'Martha Owen', 55, 54.00, 5, 'female', '+1 (534) 957-3482', 'Est aut sapiente eum', 'B+', 'active', '2026-04-03 10:51:43'),
+(13, 'Urielle Rhodes', 22, 58.00, 5, 'male', '+1 (672) 972-6024', 'Peshwar', 'A+', 'active', '2026-04-03 10:59:42'),
+(14, 'Ross Walsh', 3, 140.00, 5, 'male', '+1 (698) 704-5685', 'Qui et similique ver', 'B+', 'active', '2026-04-03 11:00:23'),
+(15, 'Riley Santiago', 118, 59.00, 5, 'female', '+1 (947) 642-7895', 'Officia qui rerum bl', 'A-', 'active', '2026-04-03 11:19:25'),
+(16, 'Izhan Sajid', 22, 67.00, 4, 'male', '03214785693', 'Kohat', '', 'active', '2026-04-04 13:08:00');
 
 -- --------------------------------------------------------
 
@@ -427,6 +456,7 @@ CREATE TABLE `payments` (
   `transaction_id` varchar(100) DEFAULT NULL,
   `payment_date` datetime DEFAULT NULL,
   `notes` text DEFAULT NULL,
+  `receptionist_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -434,11 +464,18 @@ CREATE TABLE `payments` (
 -- Dumping data for table `payments`
 --
 
-INSERT INTO `payments` (`id`, `appointment_id`, `patient_id`, `doctor_id`, `amount`, `payment_method`, `status`, `transaction_id`, `payment_date`, `notes`, `created_at`) VALUES
-(19, 9, 6, 38, 1900.00, 'cash', 'completed', '', '2026-04-03 08:13:32', '', '2026-04-03 06:13:32'),
-(20, 10, 7, 2, 1400.00, 'cash', 'completed', '', '2026-04-03 08:14:13', '', '2026-04-03 06:14:13'),
-(21, 11, 8, 34, 1100.00, 'cash', 'completed', '', '2026-04-03 08:15:08', '', '2026-04-03 06:15:08'),
-(22, 12, 9, 36, 1500.00, 'cash', 'completed', '', '2026-04-03 08:33:26', '', '2026-04-03 06:33:26');
+INSERT INTO `payments` (`id`, `appointment_id`, `patient_id`, `doctor_id`, `amount`, `payment_method`, `status`, `transaction_id`, `payment_date`, `notes`, `receptionist_id`, `created_at`) VALUES
+(19, 9, 6, 38, 1900.00, 'cash', 'completed', '', '2026-04-03 08:13:32', '', NULL, '2026-04-03 06:13:32'),
+(20, 10, 7, 2, 1400.00, 'cash', 'completed', '', '2026-04-03 08:14:13', '', NULL, '2026-04-03 06:14:13'),
+(21, 11, 8, 34, 1100.00, 'cash', 'completed', '', '2026-04-03 08:15:08', '', NULL, '2026-04-03 06:15:08'),
+(22, 12, 9, 36, 1500.00, 'cash', 'completed', '', '2026-04-03 08:33:26', '', NULL, '2026-04-03 06:33:26'),
+(23, 13, 10, 25, 1500.00, 'cash', 'completed', '', '2026-04-03 12:40:22', '', NULL, '2026-04-03 10:40:22'),
+(24, 14, 11, 27, 1500.00, 'cash', 'completed', '', '2026-04-03 12:45:06', '', NULL, '2026-04-03 10:45:06'),
+(25, 15, 12, 10, 1200.00, 'cash', 'completed', '', '2026-04-03 12:58:33', '', NULL, '2026-04-03 10:58:33'),
+(26, 16, 13, 10, 1200.00, 'cash', 'completed', '', '2026-04-03 12:59:58', '', NULL, '2026-04-03 10:59:58'),
+(27, 17, 14, 10, 1200.00, 'cash', 'completed', '', '2026-04-03 13:09:00', '', NULL, '2026-04-03 11:09:00'),
+(28, 21, 15, 10, 1200.00, 'cash', 'completed', '', '2026-04-03 13:26:20', '', 65, '2026-04-03 11:26:20'),
+(29, 22, 16, 7, 1000.00, 'cash', 'completed', '', '2026-04-04 15:10:03', '', 65, '2026-04-04 13:10:03');
 
 -- --------------------------------------------------------
 
@@ -580,7 +617,9 @@ INSERT INTO `users` (`id`, `role_id`, `name`, `email`, `phone`, `password`, `sta
 (42, 2, 'Dr. Bushra Anwar', 'bushra.anwar@prms.com', '03001111040', '123456', 'active', '2026-04-01 05:50:57', '2026-04-01 05:50:57'),
 (65, 3, 'Receptionist Ali', 'reception1@gmail.com', '03001234567', '123456', 'active', '2026-04-02 09:26:04', '2026-04-02 09:26:04'),
 (66, 3, 'Receptionist Evening', 'reception2@gmail.com', '03009998877', '123456', 'active', '2026-04-02 09:30:52', '2026-04-02 09:30:52'),
-(67, 2, 'Izhan Sajid', 'izhan@gmail.com', '03214785693', '123', 'active', '2026-04-03 07:15:14', NULL);
+(67, 2, 'Izhan Sajid', 'izhan@gmail.com', '03214785693', '123', 'active', '2026-04-03 07:15:14', NULL),
+(68, 2, 'Test 2', 'test2@gmail.com', '032147856432', '123', 'active', '2026-04-03 11:14:33', NULL),
+(69, 2, 'Muhammad Hasan``', 'hassan@gmail.com', '03369211850', '123', 'inactive', '2026-04-04 13:13:41', NULL);
 
 --
 -- Indexes for dumped tables
@@ -693,13 +732,13 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `call_appointments`
 --
 ALTER TABLE `call_appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -711,25 +750,25 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `doctors`
 --
 ALTER TABLE `doctors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `doctor_schedules`
 --
 ALTER TABLE `doctor_schedules`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=144;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
 
 --
 -- AUTO_INCREMENT for table `patients`
 --
 ALTER TABLE `patients`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `prescriptions`
@@ -759,7 +798,7 @@ ALTER TABLE `staff`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
 
 --
 -- Constraints for dumped tables
