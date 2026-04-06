@@ -103,6 +103,35 @@ include '../includes/sidebar.php';
         font-weight: 500;
         color: #4b5563;
     }
+    
+    .date-input-wrapper {
+        position: relative;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .today-btn {
+        white-space: nowrap;
+        padding: 0 12px;
+        height: 42px;
+        background-color: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4b5563;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .today-btn:hover {
+        background-color: #e5e7eb;
+        border-color: #d1d5db;
+    }
 </style>
 
 <div class="flex-1 bg-gray-50 overflow-y-auto">
@@ -121,7 +150,7 @@ include '../includes/sidebar.php';
             </div>
             <div class="p-6">
                 <form id="infoForm" method="GET" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                    <div class="md:col-span-5">
+                    <div class="md:col-span-4">
                         <label class="block text-xs font-medium text-gray-600 mb-1">Doctor Name</label>
                         <select name="doctor_id" id="doctor_select" class="w-full">
                             <option value="">Select a doctor</option>
@@ -132,19 +161,22 @@ include '../includes/sidebar.php';
                             <?php endwhile; ?>
                         </select>
                     </div>
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-3">
                         <label class="block text-xs font-medium text-gray-600 mb-1">Date</label>
-                        <input type="date" name="date" value="<?= $date ?>" min="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d', strtotime('+6 days')) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <div class="date-input-wrapper">
+                            <input type="date" name="date" id="dateInput" value="<?= $date ?>" min="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d', strtotime('+6 days')) ?>" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm h-[42px]">
+                            <button type="button" id="todayBtn" class="today-btn">Today</button>
+                        </div>
                     </div>
                     <div class="md:col-span-3">
                         <label class="block text-xs font-medium text-gray-600 mb-1">Shift Selection</label>
                         <div class="radio-group">
                             <label class="radio-option flex-1 justify-center <?= $shift == 'Morning' ? 'selected' : '' ?>">
-                                <input type="radio" name="shift" value="Morning" <?= $shift == 'Morning' ? 'checked' : '' ?> class="hidden">
+                                <input type="radio" name="shift" value="Morning" <?= $shift == 'Morning' ? 'checked' : '' ?>>
                                 <span>🌅 Morning</span>
                             </label>
                             <label class="radio-option flex-1 justify-center <?= $shift == 'Evening' ? 'selected' : '' ?>">
-                                <input type="radio" name="shift" value="Evening" <?= $shift == 'Evening' ? 'checked' : '' ?> class="hidden">
+                                <input type="radio" name="shift" value="Evening" <?= $shift == 'Evening' ? 'checked' : '' ?>>
                                 <span>🌙 Evening</span>
                             </label>
                         </div>
@@ -306,32 +338,38 @@ include '../includes/sidebar.php';
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize SlimSelect
+        // Initialize SlimSelect WITHOUT auto-submit on search
         if (document.getElementById('doctor_select')) {
             new SlimSelect({
                 select: '#doctor_select',
                 settings: {
                     placeholderText: 'Search doctor...'
-                },
-                events: {
-                    afterChange: (newVal) => {
-                        if (newVal[0].value) {
-                            document.getElementById('infoForm').submit();
-                        }
-                    }
+                }
+                // Removed the events.afterChange auto-submit to prevent premature submission
+            });
+        }
+
+        // Auto-submit on date change (only when date is fully selected)
+        const dateInput = document.getElementById('dateInput');
+        if (dateInput) {
+            dateInput.addEventListener('change', function() {
+                if (this.value) {
+                    this.form.submit();
                 }
             });
         }
-
-        // Auto-submit on date change
-        const dateInput = document.querySelector('input[name="date"]');
-        if (dateInput) {
-            dateInput.addEventListener('change', function() {
-                this.form.submit();
+        
+        // Today button functionality
+        const todayBtn = document.getElementById('todayBtn');
+        if (todayBtn) {
+            todayBtn.addEventListener('click', function() {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+                dateInput.form.submit();
             });
         }
 
-        // Update radio button styling on change
+        // Update radio button styling on change and submit
         const radioButtons = document.querySelectorAll('input[type="radio"][name="shift"]');
         radioButtons.forEach(radio => {
             radio.addEventListener('change', function() {
@@ -342,7 +380,8 @@ include '../includes/sidebar.php';
                 if (this.checked) {
                     this.closest('.radio-option').classList.add('selected');
                 }
-                this.form.submit();
+                // Submit the form
+                document.getElementById('infoForm').submit();
             });
         });
 
@@ -357,3 +396,4 @@ include '../includes/sidebar.php';
         }
     });
 </script>
+
