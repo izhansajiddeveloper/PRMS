@@ -661,6 +661,14 @@ if ($role_name !== 'admin') {
                 <span>FRONT DESK</span>
             </div>
 
+            <!-- Number Info -->
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>receptionist/number_info.php" class="nav-link-custom <?= ($current_page == 'number_info.php') ? 'active' : '' ?>">
+                    <i class="fas fa-list-ol"></i>
+                    <span>Number Info</span>
+                </a>
+            </li>
+
             <!-- Patient Registration -->
             <li class="nav-item">
                 <a href="<?= BASE_URL ?>receptionist/patients.php" class="nav-link-custom">

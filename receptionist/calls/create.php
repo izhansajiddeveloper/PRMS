@@ -27,6 +27,11 @@ if ($imported_patient_id > 0) {
     }
 }
 
+// Check if pre-filling from Number Info check
+$imported_doctor_id = isset($_GET['doctor_id']) ? intval($_GET['doctor_id']) : 0;
+$imported_date = isset($_GET['date']) ? mysqli_real_escape_string($conn, $_GET['date']) : '';
+$imported_shift = isset($_GET['shift']) ? mysqli_real_escape_string($conn, $_GET['shift']) : '';
+
 // Fetch all active doctors with their categories and schedules
 $doctors_query = "SELECT d.id, u.name as doctor_name, d.specialization, c.id as category_id, c.name as category_name
                   FROM doctors d 
@@ -36,8 +41,15 @@ $doctors_query = "SELECT d.id, u.name as doctor_name, d.specialization, c.id as 
                   ORDER BY u.name ASC";
 $doctors_result = mysqli_query($conn, $doctors_query);
 $doctors = [];
+$imported_category_id = 0;
+$imported_category_name = 'Selected automatically';
+
 while ($row = mysqli_fetch_assoc($doctors_result)) {
     $doctors[] = $row;
+    if ($imported_doctor_id > 0 && $row['id'] == $imported_doctor_id) {
+        $imported_category_id = $row['category_id'];
+        $imported_category_name = $row['category_name'];
+    }
 }
 
 // Fetch all schedules for JS rendering
@@ -170,7 +182,7 @@ include '../../includes/sidebar.php';
                             <select name="doctor_id" id="doctor_id" required class="w-full">
                                 <option value="">-- Select Doctor --</option>
                                 <?php foreach ($doctors as $doc): ?>
-                                    <option value="<?php echo $doc['id']; ?>" data-catid="<?php echo $doc['category_id']; ?>" data-catname="<?php echo htmlspecialchars($doc['category_name']); ?>">
+                                    <option value="<?php echo $doc['id']; ?>" data-catid="<?php echo $doc['category_id']; ?>" data-catname="<?php echo htmlspecialchars($doc['category_name']); ?>" <?php echo $imported_doctor_id == $doc['id'] ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($doc['doctor_name']); ?> (<?php echo htmlspecialchars($doc['specialization']); ?>)
                                     </option>
                                 <?php endforeach; ?>
@@ -180,8 +192,8 @@ include '../../includes/sidebar.php';
                         <!-- Auto-filled Category -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Category / Disease</label>
-                            <input type="hidden" name="disease_id" id="disease_id" value="">
-                            <input type="text" id="category_display" readonly value="Selected automatically" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed">
+                            <input type="hidden" name="disease_id" id="disease_id" value="<?php echo $imported_category_id; ?>">
+                            <input type="text" id="category_display" readonly value="<?php echo htmlspecialchars($imported_category_name); ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed">
                         </div>
 
                         <!-- Date Selection -->
@@ -278,7 +290,7 @@ include '../../includes/sidebar.php';
 
             dateSelect.innerHTML = '<option value="">-- Select Date --</option>';
 
-            for (let i = 0; i < 14; i++) { // Show next 14 days
+            for (let i = 0; i < 7; i++) { // Show next 7 days (One Week Only)
                 const futureDate = new Date();
                 futureDate.setDate(today.getDate() + i);
                 const dayName = futureDate.toLocaleDateString('en-US', { weekday: 'long' });
@@ -343,12 +355,21 @@ include '../../includes/sidebar.php';
                         option.value = slot.time;
                         option.textContent = `${slot.display} (${slot.shift})`;
                         option.dataset.shift = slot.shift;
+                        
+                        // Auto-select if it matches imported shift
+                        if (importedShift && slot.shift.toLowerCase() === importedShift.toLowerCase()) {
+                            option.selected = true;
+                        }
+                        
                         timeSlotSelect.appendChild(option);
                     });
 
                     timeSlotSelect.disabled = false;
                     timeSlotSelect.classList.remove('bg-gray-50', 'cursor-not-allowed');
                     timeSlotSelect.classList.add('bg-white');
+                    
+                    // Trigger change to update shift_type hidden input if selection changed
+                    timeSlotSelect.dispatchEvent(new Event('change'));
                 }
             } else {
                 timeSlotSelect.innerHTML = '<option value="">-- Error --</option>';
@@ -370,16 +391,32 @@ include '../../includes/sidebar.php';
         }
     });
 
-    <?php if (isset($_POST['doctor_id'])): ?>
-        // This is complex to re-hydrate properly due to async JS, but typical form resets on success anyway.
-    <?php endif; ?>
+    // Handle Pre-filled data from Number Info
+    const importedDate = "<?php echo $imported_date; ?>";
+    const importedShift = "<?php echo $imported_shift; ?>";
 
     // Initialize SlimSelect
     document.addEventListener('DOMContentLoaded', () => {
-        new SlimSelect({
+        const ss = new SlimSelect({
             select: '#doctor_id',
             placeholder: 'Search for a doctor...'
         });
+
+        // Trigger doctor change if pre-selected
+        if (doctorSelect.value) {
+            // Slight delay to allow SlimSelect to settle
+            setTimeout(() => {
+                doctorSelect.dispatchEvent(new Event('change'));
+                
+                // If date also provided, select it and trigger availability check
+                if (importedDate) {
+                    setTimeout(() => {
+                        dateSelect.value = importedDate;
+                        dateSelect.dispatchEvent(new Event('change'));
+                    }, 300);
+                }
+            }, 100);
+        }
     });
 </script>
 
