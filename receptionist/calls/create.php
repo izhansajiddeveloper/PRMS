@@ -397,25 +397,23 @@ include '../../includes/sidebar.php';
 
     // Initialize SlimSelect
     document.addEventListener('DOMContentLoaded', () => {
-        const ss = new SlimSelect({
-            select: '#doctor_id',
-            placeholder: 'Search for a doctor...'
-        });
+        try {
+            if (typeof SlimSelect !== 'undefined') {
+                new SlimSelect({
+                    select: '#doctor_id',
+                    placeholder: 'Search for a doctor...'
+                });
+            }
+        } catch (e) {
+            console.error("SlimSelect error:", e);
+        }
 
         // Trigger doctor change if pre-selected
         if (doctorSelect.value) {
-            // Slight delay to allow SlimSelect to settle
+            // Wait slightly to let the UI finish setting up
             setTimeout(() => {
                 doctorSelect.dispatchEvent(new Event('change'));
-                
-                // If date also provided, select it and trigger availability check
-                if (importedDate) {
-                    setTimeout(() => {
-                        dateSelect.value = importedDate;
-                        dateSelect.dispatchEvent(new Event('change'));
-                    }, 300);
-                }
-            }, 100);
+            }, 200);
         }
     });
 </script>

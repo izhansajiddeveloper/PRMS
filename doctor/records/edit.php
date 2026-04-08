@@ -39,13 +39,22 @@ if (!$record) {
 }
 
 // Check if this record is linked to an appointment
-$appointment_check = "SELECT a.id, a.status, a.appointment_date
-                      FROM appointments a
-                      WHERE a.patient_id = ? AND a.doctor_id = ? 
-                      AND DATE(a.appointment_date) = DATE(?)
-                      LIMIT 1";
-$stmt = mysqli_prepare($conn, $appointment_check);
-mysqli_stmt_bind_param($stmt, "iis", $record['patient_id'], $doctor_id, $record['visit_date']);
+if ($record['appointment_id']) {
+    $appointment_check = "SELECT a.id, a.status, a.appointment_date
+                          FROM appointments a
+                          WHERE a.id = ?";
+    $stmt = mysqli_prepare($conn, $appointment_check);
+    mysqli_stmt_bind_param($stmt, "i", $record['appointment_id']);
+} else {
+    // Fallback for older records without appointment_id
+    $appointment_check = "SELECT a.id, a.status, a.appointment_date
+                          FROM appointments a
+                          WHERE a.patient_id = ? AND a.doctor_id = ? 
+                          AND DATE(a.appointment_date) = DATE(?)
+                          LIMIT 1";
+    $stmt = mysqli_prepare($conn, $appointment_check);
+    mysqli_stmt_bind_param($stmt, "iis", $record['patient_id'], $doctor_id, $record['visit_date']);
+}
 mysqli_stmt_execute($stmt);
 $appointment_result = mysqli_stmt_get_result($stmt);
 $linked_appointment = mysqli_fetch_assoc($appointment_result);

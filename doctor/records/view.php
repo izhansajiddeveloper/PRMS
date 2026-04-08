@@ -130,9 +130,18 @@ include '../../includes/sidebar.php';
                         <p class="text-gray-800 mt-1"><?php echo nl2br(htmlspecialchars($record['diagnosis'])); ?></p>
                     </div>
                     <?php if ($record['notes']): ?>
-                        <div>
+                        <div class="mb-4">
                             <label class="text-sm text-gray-500">Doctor's Notes</label>
                             <p class="text-gray-800 mt-1"><?php echo nl2br(htmlspecialchars($record['notes'])); ?></p>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($record['appointment_id']): ?>
+                        <div class="pt-4 border-t border-gray-100 mt-4 flex items-center justify-between">
+                            <div>
+                                <label class="text-xs text-blue-500 font-bold uppercase tracking-wider">Linked Appointment</label>
+                                <p class="text-sm text-gray-600">This record is associated with Appointment #<?php echo str_pad($record['appointment_id'], 6, '0', STR_PAD_LEFT); ?></p>
+                            </div>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase">Linked</span>
                         </div>
                     <?php endif; ?>
                 </div>

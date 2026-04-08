@@ -16,7 +16,7 @@ $is_session_based = false;
 
 if ($appointment_id > 0) {
     // Standard flow (existing appointment)
-    $query = "SELECT a.*, p.name as patient_name, p.phone as patient_phone, 
+    $query = "SELECT a.*, p.name, p.phone, 
               p.age, p.weight, p.gender, p.blood_group, p.address,
               u.name as doctor_name, d.consultation_fee as db_doctor_fee
               FROM appointments a
@@ -89,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['record_payment'])) {
 
     mysqli_begin_transaction($conn);
     try {
+        // Enable exception reporting for this transaction
+        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
         // 1. Update patient details if provided
         if (isset($_POST['update_patient_info'])) {
             $age = intval($_POST['age']);
@@ -115,16 +117,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['record_payment'])) {
                 $patient_number = $appointment['patient_number'];
                 $time_slot = $appointment['time_slot'];
             } else {
-                // Calculate fresh token
-                $num_query = "SELECT 
-                    (SELECT COUNT(*) FROM appointments WHERE doctor_id = ? AND DATE(appointment_date) = ? AND shift_type = ? AND status != 'cancelled') +
-                    (SELECT COUNT(*) FROM call_appointments WHERE doctor_id = ? AND DATE(appointment_date) = ? AND shift_type = ? AND status != 'cancelled') 
-                    as total_count FOR UPDATE";
+                // Calculate fresh token using MAX to avoid duplicate values
+                $num_query = "SELECT MAX(patient_number) as max_num FROM (
+                    SELECT patient_number FROM appointments WHERE doctor_id = ? AND DATE(appointment_date) = ? AND shift_type = ? AND status != 'cancelled'
+                    UNION ALL
+                    SELECT patient_number FROM call_appointments WHERE doctor_id = ? AND DATE(appointment_date) = ? AND shift_type = ? AND status != 'cancelled'
+                ) as combined FOR UPDATE";
                 $n_stmt = mysqli_prepare($conn, $num_query);
                 mysqli_stmt_bind_param($n_stmt, "ississ", $doctor_id, $apt_date_only, $shift, $doctor_id, $apt_date_only, $shift);
                 mysqli_stmt_execute($n_stmt);
                 $n_data = mysqli_fetch_assoc(mysqli_stmt_get_result($n_stmt));
-                $patient_number = ($n_data['total_count'] ?? 0) + 1;
+                $patient_number = ($n_data['max_num'] ?? 0) + 1;
                 $time_slot = isset($appointment['appointment_time']) ? $appointment['appointment_time'] : date('H:i:s', strtotime($apt_date));
             }
 
@@ -208,7 +211,7 @@ include '../../includes/sidebar.php';
                         <div class="p-5 space-y-4">
                             <div>
                                 <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Patient Details</p>
-                                <p class="text-sm font-semibold text-gray-800 mt-1"><?php echo htmlspecialchars($appointment['patient_name']); ?></p>
+                                <p class="text-sm font-semibold text-gray-800 mt-1"><?php echo htmlspecialchars($appointment['name']); ?></p>
                                 <p class="text-xs text-gray-500"><?php echo $appointment['phone']; ?></p>
                             </div>
                             <div>

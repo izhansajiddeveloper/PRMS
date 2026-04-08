@@ -115,11 +115,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } elseif (empty($diagnosis)) {
             $error = "Please enter diagnosis";
         } else {
-            // Insert record
-            $insert_query = "INSERT INTO records (patient_id, doctor_id, visit_date, symptoms, diagnosis, notes) 
-                             VALUES (?, ?, ?, ?, ?, ?)";
+            // Insert record with appointment_id
+            $insert_query = "INSERT INTO records (patient_id, doctor_id, appointment_id, visit_date, symptoms, diagnosis, notes) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmt = mysqli_prepare($conn, $insert_query);
-            mysqli_stmt_bind_param($stmt, "iissss", $patient_id, $doctor_id, $visit_date, $symptoms, $diagnosis, $notes);
+            mysqli_stmt_bind_param($stmt, "iiissss", $patient_id, $doctor_id, $appointment['id'], $visit_date, $symptoms, $diagnosis, $notes);
 
             if (mysqli_stmt_execute($stmt)) {
                 $record_id = mysqli_insert_id($conn);

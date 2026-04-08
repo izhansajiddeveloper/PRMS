@@ -80,8 +80,20 @@ if (isset($_GET['doctor_id']) && isset($_GET['date'])) {
     foreach ($all_shifts as $shift) {
         $total_max_appointments += $shift['max_appointments'];
 
-        $start = strtotime($shift['start_time']);
-        $end = strtotime($shift['end_time']);
+        // Strip random stray seconds (like 00:00:13) so intervals snap cleanly
+        $start = strtotime(date('H:i:00', strtotime($shift['start_time'])));
+        $end = strtotime(date('H:i:00', strtotime($shift['end_time'])));
+
+        // Handle AM/PM confusion: If user entered 12:00 AM (00:00:00) but shift started in morning,
+        // they almost certainly meant 12:00 PM (Noon). Move the end time forward 12 hours.
+        if (date('H', $end) === '00' && date('H', $start) > 0 && date('H', $start) < 12) {
+            $end += 43200; // Add 12 hours (12 * 3600)
+        }
+
+        // Handle genuine night shifts crossing midnight
+        if ($end <= $start) {
+            $end += 86400; // Add 24 hours to represent midnight of the next day
+        }
 
         $current = $start;
         while ($current < $end) {

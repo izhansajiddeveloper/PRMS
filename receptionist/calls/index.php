@@ -88,6 +88,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'arrive' && isset($_GET['id']))
             ];
 
             setFlashMessage("Patient arrived! Proceeding to fee collection to finalize booking.", "success");
+            mysqli_commit($conn);
+            session_write_close();
             header("Location: ../payments/create.php?source=call_arrival");
             exit();
 
