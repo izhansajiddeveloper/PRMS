@@ -2,6 +2,10 @@
 // Start session
 session_start();
 
+// Set timezone
+date_default_timezone_set('Asia/Karachi');
+
+
 // Database configuration
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');

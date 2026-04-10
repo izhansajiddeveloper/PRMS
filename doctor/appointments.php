@@ -30,10 +30,13 @@ if ($status_filter) {
 
 $where_sql = implode(" AND ", $where_clauses);
 
-// Fetch appointments
-$appointments_query = "SELECT a.*, p.id as patient_id, p.name as patient_name, p.age, p.gender, p.phone, p.blood_group, p.address
+// Fetch appointments with additional info about prescriptions and records
+$appointments_query = "SELECT a.*, p.id as patient_id, p.name as patient_name, p.age, p.gender, p.phone, p.blood_group, p.address,
+                              r.id as record_id, r.has_tests,
+                              (SELECT COUNT(*) FROM prescriptions WHERE record_id = r.id) as prescriptions_count
                        FROM appointments a
                        JOIN patients p ON a.patient_id = p.id
+                       LEFT JOIN records r ON r.patient_id = p.id AND r.doctor_id = a.doctor_id AND DATE(r.visit_date) = DATE(a.appointment_date)
                        WHERE $where_sql
                        ORDER BY a.appointment_date ASC";
 $appointments_result = mysqli_query($conn, $appointments_query);
@@ -178,6 +181,20 @@ include '../includes/sidebar.php';
                         $appointment_date = date('Y-m-d', strtotime($appointment['appointment_date']));
                         $display_date = date('l, d F Y', strtotime($appointment['appointment_date']));
 
+                        // Determine if appointment should be considered completed (has prescriptions)
+                        $isEffectivelyCompleted = false;
+                        $completionMessage = '';
+
+                        if ($appointment['status'] == 'pending') {
+                            if ($appointment['record_id'] && $appointment['prescriptions_count'] > 0) {
+                                $isEffectivelyCompleted = true;
+                                $completionMessage = 'Prescriptions added';
+                            } elseif ($appointment['record_id'] && $appointment['has_tests'] == 0) {
+                                $isEffectivelyCompleted = true;
+                                $completionMessage = 'Record completed, no tests';
+                            }
+                        }
+
                         if ($current_date != $appointment_date):
                             $current_date = $appointment_date;
                     ?>
@@ -234,16 +251,30 @@ include '../includes/sidebar.php';
                                         </span>
                                     </div>
                                     <div>
-                                        <span class="px-3 py-1 text-sm rounded-full 
-                                        <?php echo $appointment['status'] == 'completed' ? 'bg-green-100 text-green-800' : ($appointment['status'] == 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'); ?>">
-                                            <?php echo ucfirst($appointment['status']); ?>
-                                        </span>
+                                        <?php if ($isEffectivelyCompleted): ?>
+                                            <span class="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-check-circle mr-1"></i> Completed
+                                            </span>
+                                            <div class="text-[10px] text-green-600 mt-1">
+                                                <?php echo $completionMessage; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="px-3 py-1 text-sm rounded-full 
+                                            <?php echo $appointment['status'] == 'completed' ? 'bg-green-100 text-green-800' : ($appointment['status'] == 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'); ?>">
+                                                <?php echo ucfirst($appointment['status']); ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="mt-3 flex space-x-2 justify-end">
-                                        <?php if ($appointment['status'] == 'pending'): ?>
+                                        <?php if ($appointment['status'] == 'pending' && !$isEffectivelyCompleted): ?>
                                             <a href="records/create.php?patient_id=<?php echo $appointment['patient_id']; ?>"
                                                 class="text-sm bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition">
                                                 <i class="fas fa-notes-medical mr-1"></i> Add Record
+                                            </a>
+                                        <?php elseif ($appointment['record_id']): ?>
+                                            <a href="records/view.php?id=<?php echo $appointment['record_id']; ?>"
+                                                class="text-sm bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition">
+                                                <i class="fas fa-eye mr-1"></i> View Record
                                             </a>
                                         <?php endif; ?>
                                         <a href="javascript:void(0)"
@@ -419,4 +450,3 @@ include '../includes/sidebar.php';
         }
     }
 </script>
-

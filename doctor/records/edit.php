@@ -71,6 +71,21 @@ while ($pres = mysqli_fetch_assoc($prescriptions_result)) {
     $prescriptions[] = $pres;
 }
 
+// Fetch record tests if any
+$record_tests_query = "SELECT rt.*, t.name as test_name 
+                      FROM record_tests rt 
+                      JOIN tests t ON rt.test_id = t.id 
+                      WHERE rt.record_id = ?";
+$stmt = mysqli_prepare($conn, $record_tests_query);
+mysqli_stmt_bind_param($stmt, "i", $record_id);
+mysqli_stmt_execute($stmt);
+$record_tests_result = mysqli_stmt_get_result($stmt);
+$record_tests = [];
+while ($rt = mysqli_fetch_assoc($record_tests_result)) {
+    $record_tests[] = $rt;
+}
+
+
 $error = '';
 
 // Handle form submission
@@ -91,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         mysqli_stmt_bind_param($stmt, "i", $record_id);
         mysqli_stmt_execute($stmt);
 
-        // Insert new prescriptions
+        // Insert new prescriptions if any
         if (isset($_POST['medicine_name']) && is_array($_POST['medicine_name'])) {
             for ($i = 0; $i < count($_POST['medicine_name']); $i++) {
                 if (!empty($_POST['medicine_name'][$i])) {
@@ -108,6 +123,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
         }
+
+        // Update test results if any
+        if ($record['has_tests'] && isset($_POST['test_results'])) {
+            $test_results = mysqli_real_escape_string($conn, $_POST['test_results']);
+            $update_tests_query = "UPDATE record_tests SET notes = ? WHERE record_id = ?";
+            $t_stmt = mysqli_prepare($conn, $update_tests_query);
+            mysqli_stmt_bind_param($t_stmt, "si", $test_results, $record_id);
+            mysqli_stmt_execute($t_stmt);
+        }
+
 
         setFlashMessage("Medical record updated successfully!", "success");
         header("Location: view.php?id=$record_id");
@@ -169,6 +194,36 @@ include '../../includes/sidebar.php';
                                 placeholder="Any additional notes..."><?php echo htmlspecialchars($record['notes']); ?></textarea>
                         </div>
                     </div>
+
+                    <?php if ($record['has_tests']): ?>
+                        <!-- Tests Results Section -->
+                        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
+                            <h3 class="text-md font-bold text-blue-800 mb-3 flex items-center">
+                                <i class="fas fa-microscope mr-2"></i> Medical Test Results
+                            </h3>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Requested Tests:</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <?php foreach ($record_tests as $test): ?>
+                                        <span class="px-3 py-1 bg-white border border-blue-300 text-blue-700 text-xs font-semibold rounded-full shadow-sm">
+                                            <?php echo htmlspecialchars($test['test_name']); ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Test Findings & Results *</label>
+                                <textarea name="test_results" rows="3" required
+                                    class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white"
+                                    placeholder="Enter test findings here to enable prescription..."><?php echo isset($record_tests[0]) ? htmlspecialchars($record_tests[0]['notes']) : ''; ?></textarea>
+                                <p class="text-xs text-blue-600 mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Updating these results will confirm you have reviewed the reports.
+                                </p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
 
                     <!-- Prescriptions Section -->
                     <div class="mb-6">

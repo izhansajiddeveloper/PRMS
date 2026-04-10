@@ -56,6 +56,13 @@ $upcoming_query = "SELECT COUNT(*) as total FROM appointments
 $upcoming_result = mysqli_query($conn, $upcoming_query);
 $upcoming_appointments = mysqli_fetch_assoc($upcoming_result)['total'];
 
+// Call Bookings Today
+$today_calls_query = "SELECT COUNT(*) as total FROM call_appointments 
+                      WHERE DATE(appointment_date) = '$today_date' 
+                      AND status != 'cancelled'";
+$today_calls_result = mysqli_query($conn, $today_calls_query);
+$today_calls = mysqli_fetch_assoc($today_calls_result)['total'];
+
 // Today's Appointments List
 $today_list_query = "SELECT a.*, p.name as patient_name, p.age, p.gender, p.phone,
                      u.name as doctor_name, d.specialization
@@ -97,12 +104,7 @@ $refunds_today_query = "SELECT SUM(amount) as total FROM payments WHERE DATE(pay
 $refunds_today_result = mysqli_query($conn, $refunds_today_query);
 $refunds_today = mysqli_fetch_assoc($refunds_today_result)['total'] ?: 0;
 
-// Total Pending Payments Count
-$pending_payments_count_query = "SELECT COUNT(*) as total FROM appointments a 
-                                 LEFT JOIN payments p ON a.id = p.appointment_id 
-                                 WHERE p.id IS NULL AND a.status != 'cancelled'";
-$pending_payments_count_result = mysqli_query($conn, $pending_payments_count_query);
-$pending_payments_count = mysqli_fetch_assoc($pending_payments_count_result)['total'];
+
 
 // Recent Payments (Last 5)
 $recent_payments_query = "SELECT py.*, p.name as patient_name 
@@ -160,6 +162,20 @@ include '../includes/sidebar.php';
                 </div>
             </div>
 
+            <!-- Call Bookings Today -->
+            <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition border-b-4 border-blue-400">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Booked on Call Today</p>
+                        <p class="text-3xl font-bold text-blue-600"><?php echo $today_calls; ?></p>
+                        <p class="text-blue-500 text-xs mt-2 font-bold uppercase tracking-widest"><i class="fas fa-phone-alt mr-1"></i> Phone Appointments</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
+                        <i class="fas fa-phone text-blue-500 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
             <!-- Today's Appointments -->
             <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
                 <div class="flex items-center justify-between">
@@ -202,19 +218,7 @@ include '../includes/sidebar.php';
                 </div>
             </div>
 
-            <!-- Missing Payments -->
-            <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition border-b-4 border-red-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">Pending Payments</p>
-                        <p class="text-3xl font-bold text-red-600"><?php echo $pending_payments_count; ?></p>
-                        <p class="text-gray-500 text-xs mt-2">Fees yet to collect</p>
-                    </div>
-                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-file-invoice-dollar text-red-600 text-xl"></i>
-                    </div>
-                </div>
-            </div>
+           
         </div>
 
         <!-- Second Row Cards -->

@@ -102,14 +102,21 @@ if (isset($_GET['action']) && $_GET['action'] == 'arrive' && isset($_GET['id']))
     }
 }
 
+// Handle search
+$search = isset($_GET['search']) ? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
+$search_where = "";
+if ($search) {
+    $search_where = " AND (c.patient_name LIKE '%$search%' OR c.phone LIKE '%$search%' OR c.patient_number LIKE '%$search%')";
+}
+
 // Fetch call appointments
 $query = "SELECT c.*, u.name as doctor_name, cat.name as category_name
           FROM call_appointments c
           JOIN doctors d ON c.doctor_id = d.id
           JOIN users u ON d.user_id = u.id
           JOIN categories cat ON c.disease_id = cat.id
-          WHERE c.status = 'pending' OR DATE(c.created_at) = CURDATE()
-          ORDER BY c.created_at ASC";
+          WHERE (c.status = 'pending' OR DATE(c.appointment_date) >= CURDATE())$search_where
+          ORDER BY FIELD(c.status, 'pending', 'visited', 'cancelled'), c.appointment_date ASC, c.patient_number ASC";
 $result = mysqli_query($conn, $query);
 
 include '../../includes/header.php';
@@ -119,26 +126,54 @@ include '../../includes/sidebar.php';
 <!-- Main Content -->
 <div class="flex-1 overflow-y-auto bg-gray-50">
     <div class="p-6">
-        <!-- Page Header -->
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">
-                    <span class="text-blue-600">Call</span> Bookings
-                </h1>
-                <p class="text-gray-600 mt-1 text-sm italic">
-                    <i class="fas fa-phone mr-1"></i>
-                    Track patients who booked an appointment via call.
-                </p>
+        <!-- Arrive Calling Patient Search Section -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border-l-4 border-blue-600">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-gray-800 uppercase tracking-tight">Arrive Calling Patient</h1>
+                    <p class="text-sm text-gray-400 font-medium">Search for patients who booked via phone call</p>
+                </div>
+                <a href="create.php" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-100 transition text-sm font-bold flex items-center">
+                    <i class="fas fa-plus-circle mr-2"></i> Create New Call Booking
+                </a>
             </div>
-            <a href="create.php" class="bg-gradient-to-r from-blue-500 to-green-500 text-white px-5 py-2 rounded-lg hover:shadow-lg transition">
-                <i class="fas fa-plus mr-2"></i>New Call Booking
-            </a>
+            
+            <div class="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Search Call Booking</label>
+                <form action="" method="GET" class="flex flex-col md:flex-row gap-3">
+                    <div class="flex-1 relative">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
+                            placeholder="Enter caller name or phone..." 
+                            class="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition shadow-sm">
+                    </div>
+                    <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 transition font-black uppercase text-sm shadow-md hover:shadow-lg flex items-center justify-center min-w-[160px]">
+                        <i class="fas fa-search mr-2"></i> Search
+                    </button>
+                    <?php if ($search): ?>
+                        <a href="index.php" class="bg-white text-gray-500 border border-gray-200 px-6 py-3 rounded-xl hover:bg-gray-100 transition flex items-center justify-center font-bold">
+                            Clear
+                        </a>
+                    <?php endif; ?>
+                </form>
+            </div>
         </div>
 
         <?php displayFlashMessage(); ?>
 
-        <!-- Table -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <!-- Results Table -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden min-h-[400px]">
+            <div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <h3 class="font-black text-gray-700 uppercase text-[10px] tracking-widest">
+                        <?php echo $search ? 'Filtered Bookings' : 'Pending Call Arrivals'; ?>
+                    </h3>
+                </div>
+                <?php if ($search): ?>
+                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Showing results for "<?php echo htmlspecialchars($search); ?>"</span>
+                <?php endif; ?>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-50 border-b">

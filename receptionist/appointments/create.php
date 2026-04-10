@@ -381,14 +381,20 @@ include '../../includes/sidebar.php';
                                                 <?php if($is_today_schedule) echo '<span class="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded ml-1">TODAY</span>'; ?>
                                                 (<?php echo $schedule['shift_type']; ?> Shift):
                                             </span>
-                                            <span class="text-gray-600"><?php echo date('h:i A', strtotime($schedule['start_time'])); ?> - <?php echo date('h:i A', strtotime($schedule['end_time'])); ?></span>
+                                            <span class="text-gray-600 font-bold">
+                                                <?php 
+                                                if ($schedule['shift_type'] === 'Morning') echo "09:00 AM - 01:00 PM";
+                                                else if ($schedule['shift_type'] === 'Evening') echo "04:00 PM - 08:00 PM";
+                                                else echo date('h:i A', strtotime($schedule['start_time'])) . " - " . date('h:i A', strtotime($schedule['end_time']));
+                                                ?>
+                                            </span>
                                             <span class="text-xs text-gray-500 font-bold">Max: <?php echo $schedule['max_appointments']; ?></span>
                                         </div>
                                     <?php endwhile; ?>
                                 </div>
                                 <p class="text-xs text-gray-500 mt-2">
                                     <i class="fas fa-info-circle mr-1"></i>
-                                    Time slots are in 30-minute intervals. Each slot can only be booked once.
+                                    Time slots are in 10-minute intervals. Each slot can only be booked once.
                                 </p>
                             </div>
 

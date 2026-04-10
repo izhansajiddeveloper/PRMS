@@ -135,7 +135,7 @@ if ($search_modal) {
 }
 
 // Separate search for call appointments
-$search_call_modal = isset($_POST['search_call_modal']) ? mysqli_real_escape_string($conn, $_POST['search_call_modal']) : '';
+$search_call_modal = isset($_POST['search_call_modal']) ? mysqli_real_escape_string($conn, trim($_POST['search_call_modal'])) : '';
 $call_appt_results = null;
 if ($search_call_modal) {
     $call_search_query = "SELECT ca.id as call_appt_id, ca.patient_name, ca.phone,
@@ -148,9 +148,9 @@ if ($search_call_modal) {
                           JOIN users u ON d.user_id = u.id
                           JOIN categories cat ON ca.disease_id = cat.id
                           LEFT JOIN patients p ON ca.patient_id = p.id
-                          WHERE ca.status = 'pending'
-                          AND (ca.patient_name LIKE '%$search_call_modal%' OR ca.phone LIKE '%$search_call_modal%')
-                          ORDER BY ca.appointment_date ASC
+                          WHERE (ca.status = 'pending' OR DATE(ca.appointment_date) >= CURDATE())
+                          AND (ca.patient_name LIKE '%$search_call_modal%' OR ca.phone LIKE '%$search_call_modal%' OR ca.patient_number LIKE '%$search_call_modal%')
+                          ORDER BY ca.appointment_date ASC, ca.patient_number ASC
                           LIMIT 10";
     $call_appt_results = mysqli_query($conn, $call_search_query);
 }
@@ -324,7 +324,7 @@ include '../includes/sidebar.php';
                                             
                                             <?php if ($patient['last_doctor_name']): ?>
                                                 <p class="text-sm font-semibold text-gray-800 mt-1 truncate max-w-[150px]" title="<?php echo htmlspecialchars($patient['last_doctor_name']); ?>">
-                                                   Dr. <?php echo htmlspecialchars(trim(str_replace('Dr.', '', $patient['last_doctor_name']))); ?>
+                                                   <?php echo htmlspecialchars($patient['last_doctor_name'] ?: 'N/A'); ?>
                                                 </p>
                                             <?php endif; ?>
                                             
@@ -565,16 +565,24 @@ include '../includes/sidebar.php';
             </button>
         </div>
 
-        <form method="POST" action="" id="searchCallForm">
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Search Call Booking</label>
+        <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-6">
+            <h4 class="text-blue-800 font-bold text-sm mb-1 uppercase tracking-wider">Arrival Processing</h4>
+            <p class="text-blue-600 text-xs">Verify the caller details below to finalize their arrival and generate a formal appointment.</p>
+        </div>
+
+        <form method="POST" action="" id="searchCallForm" class="mb-6">
+            <div class="space-y-3">
+                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Search Call Booking</label>
                 <div class="flex gap-2">
-                    <input type="text" name="search_call_modal" id="searchCallInput"
-                        placeholder="Enter caller name or phone..."
-                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
-                        value="<?php echo htmlspecialchars($search_call_modal); ?>">
-                    <button type="submit" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition">
-                        <i class="fas fa-search mr-1"></i> Search
+                    <div class="flex-1 relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" name="search_call_modal" id="searchCallInput"
+                            placeholder="Enter caller name, phone, or token..."
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition shadow-sm"
+                            value="<?php echo htmlspecialchars($search_call_modal); ?>">
+                    </div>
+                    <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition font-black uppercase text-xs shadow-md">
+                        Search
                     </button>
                 </div>
             </div>

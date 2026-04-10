@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 06, 2026 at 11:19 AM
+-- Generation Time: Apr 10, 2026 at 12:14 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -57,25 +57,25 @@ CREATE TABLE `appointments` (
   `time_slot` varchar(50) DEFAULT NULL,
   `patient_number` int(11) DEFAULT 0,
   `status` enum('pending','completed','cancelled') DEFAULT 'pending',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `has_tests` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `appointments`
 --
 
-INSERT INTO `appointments` (`id`, `patient_id`, `doctor_id`, `appointment_date`, `symptoms`, `category_id`, `consultation_fee`, `shift_type`, `time_slot`, `patient_number`, `status`, `created_at`) VALUES
-(9, 6, 38, '2026-04-02 14:00:00', 'Amet adipisci est p', 19, 1900.00, 'Afternoon', NULL, 1, 'pending', '2026-04-03 06:13:26'),
-(10, 7, 2, '2026-04-02 10:30:00', '-----', 1, 1400.00, 'Morning', NULL, 1, 'pending', '2026-04-03 06:14:11'),
-(11, 8, 34, '2026-04-02 15:00:00', 'Walk-in (Call Booking)', 17, 1100.00, 'Afternoon', '15', 1, 'pending', '2026-04-03 06:15:07'),
-(12, 9, 36, '2026-04-02 17:00:00', 'Walk-in (Call Booking)', 18, 1500.00, 'Evening', '17', 1, 'pending', '2026-04-03 06:33:21'),
-(13, 10, 25, '2026-04-03 14:00:00', 'Walk-in (Call Booking)', 13, 1500.00, 'Afternoon', '14', 1, 'pending', '2026-04-03 10:38:48'),
-(14, 11, 27, '2026-04-06 09:00:00', 'Walk-in (Call Booking)', 14, 1500.00, 'Morning', '9', 1, 'pending', '2026-04-03 10:42:16'),
-(15, 12, 10, '2026-04-04 10:00:00', '--', 5, 1200.00, 'Morning', NULL, 1, 'pending', '2026-04-03 10:58:30'),
-(16, 13, 10, '2026-04-04 10:30:00', 'Walk-in (Call Booking)', 5, 1200.00, 'Morning', '10', 2, 'pending', '2026-04-03 10:59:42'),
-(17, 14, 10, '2026-04-04 11:00:00', '--\\r\\n', 5, 1200.00, 'Morning', NULL, 2, 'pending', '2026-04-03 11:08:58'),
-(21, 15, 10, '2026-04-04 11:30:00', '------', 5, 1200.00, 'Morning', '11:30:00', 5, 'pending', '2026-04-03 11:26:20'),
-(22, 16, 7, '2026-04-06 09:00:00', '----------', 4, 1000.00, 'Morning', '09:00:00', 1, 'pending', '2026-04-04 13:10:03');
+INSERT INTO `appointments` (`id`, `patient_id`, `doctor_id`, `appointment_date`, `symptoms`, `category_id`, `consultation_fee`, `shift_type`, `time_slot`, `patient_number`, `status`, `created_at`, `has_tests`) VALUES
+(26, 22, 12, '2026-04-07 16:00:00', 'Walk-in (Call Booking)', 6, 1300.00, 'Evening', '16', 1, 'pending', '2026-04-06 11:08:15', 0),
+(27, 23, 12, '2026-04-07 16:30:00', 'Walk-in (Call Booking)', 6, 1300.00, 'Evening', '16', 2, 'pending', '2026-04-06 11:08:47', 0),
+(28, 24, 12, '2026-04-07 17:00:00', '-----', 6, 1300.00, 'Evening', '17:00:00', 3, 'pending', '2026-04-06 11:09:41', 0),
+(29, 25, 38, '2026-04-08 09:30:00', 'lungs cancaer', 19, 1900.00, 'Morning', '09:30:00', 1, 'completed', '2026-04-08 07:00:54', 0),
+(30, 26, 38, '2026-04-08 10:00:00', 'Walk-in (Call Booking)', 19, 1900.00, 'Morning', '10', 2, 'cancelled', '2026-04-08 07:03:39', 0),
+(31, 28, 38, '2026-04-09 14:00:00', 'Walk-in (Call Booking)', 19, 1900.00, 'Afternoon', '14', 1, 'completed', '2026-04-08 11:43:17', 0),
+(32, 29, 47, '2026-04-08 16:00:00', '----', 13, 500.00, 'Evening', '16:00:00', 1, 'pending', '2026-04-08 11:53:31', 0),
+(33, 30, 47, '2026-04-09 16:40:00', '-------', 13, 500.00, 'Evening', '16:40:00', 1, 'pending', '2026-04-09 11:27:21', 0),
+(34, 31, 47, '2026-04-09 17:00:00', 'Walk-in (Call Booking)', 13, 500.00, 'Evening', '17', 3, 'pending', '2026-04-09 11:37:28', 0),
+(35, 32, 29, '2026-04-10 10:50:00', 'Walk-in (Call Booking)', 15, 1400.00, 'Morning', '10', 1, 'pending', '2026-04-10 05:40:11', 0);
 
 -- --------------------------------------------------------
 
@@ -105,12 +105,14 @@ CREATE TABLE `call_appointments` (
 --
 
 INSERT INTO `call_appointments` (`id`, `patient_name`, `phone`, `doctor_id`, `disease_id`, `call_date`, `appointment_date`, `status`, `notes`, `created_at`, `patient_number`, `shift_type`, `time_slot`, `patient_id`) VALUES
-(1, 'Basia Castro', '+1 (259) 489-6683', 12, 6, '2026-04-02 23:14:39', '2026-04-02 16:00:00', 'pending', 'Quos ut cupiditate a', '2026-04-03 06:14:39', 1, 'Evening', '16', NULL),
-(2, 'Alice Rogers', '+1 (878) 933-6902', 34, 17, '2026-04-02 23:14:55', '2026-04-02 15:00:00', 'visited', 'Quibusdam id irure m', '2026-04-03 06:14:55', 1, 'Afternoon', '15', 8),
-(3, 'Shani', '05215456', 36, 18, '2026-04-02 23:32:39', '2026-04-02 17:00:00', 'visited', '---', '2026-04-03 06:32:39', 1, 'Evening', '17', 9),
-(4, 'Imogene Shaw', '+1 (234) 569-2301', 25, 13, '2026-04-03 03:38:34', '2026-04-03 14:00:00', 'visited', 'Eum Nam qui non quia', '2026-04-03 10:38:34', 1, 'Afternoon', '14', 10),
-(5, 'Zahir Medina', '+1 (809) 246-1207', 27, 14, '2026-04-03 03:42:06', '2026-04-06 09:00:00', 'visited', 'Soluta ullamco eiusm', '2026-04-03 10:42:06', 1, 'Morning', '9', 11),
-(6, 'Urielle Rhodes', '+1 (672) 972-6024', 10, 5, '2026-04-03 03:59:03', '2026-04-04 10:30:00', 'visited', 'Est fugiat quisquam ', '2026-04-03 10:59:03', 2, 'Morning', '10', 13);
+(10, 'test', '03177990549', 12, 6, '2026-04-06 04:05:24', '2026-04-07 16:00:00', 'visited', 'hdffhhdz', '2026-04-06 11:05:24', 1, 'Evening', '16', 22),
+(11, 'Shani', '+923214785693', 12, 6, '2026-04-06 04:05:52', '2026-04-07 16:30:00', 'visited', 'sgwgew', '2026-04-06 11:05:52', 2, 'Evening', '16', 23),
+(12, 'Zahid', '03214785693', 38, 19, '2026-04-08 00:02:49', '2026-04-08 10:00:00', 'visited', '--', '2026-04-08 07:02:49', 2, 'Morning', '10', 26),
+(13, 'salman ', '0511565120', 38, 19, '2026-04-08 04:42:49', '2026-04-09 14:00:00', 'visited', '----', '2026-04-08 11:42:49', 1, 'Afternoon', '14', 28),
+(16, 'Zahid', '03177990549', 47, 13, '2026-04-09 04:31:24', '2026-04-09 16:50:00', 'pending', '------', '2026-04-09 11:31:24', 2, 'Evening', '16', NULL),
+(17, 'Faith Mayo', '+1 (982) 763-5193', 47, 13, '2026-04-09 04:34:51', '2026-04-09 17:00:00', 'visited', 'Sit alias eiusmod v', '2026-04-09 11:34:51', 3, 'Evening', '17', 31),
+(18, 'Samson Mayo', '+1 (714) 615-5252', 27, 14, '2026-04-09 04:36:16', '2026-04-10 09:00:00', 'pending', 'Commodi et facilis e', '2026-04-09 11:36:16', 1, 'Morning', '9', NULL),
+(19, 'Wesley Farrell', '+1 (273) 581-6794', 29, 15, '2026-04-09 22:39:51', '2026-04-10 10:50:00', 'visited', 'Eligendi molestiae d', '2026-04-10 05:39:51', 1, 'Morning', '10', 32);
 
 -- --------------------------------------------------------
 
@@ -224,7 +226,9 @@ INSERT INTO `doctors` (`id`, `user_id`, `specialization`, `category_id`, `status
 (40, 42, 'Dementia Specialist', 20, 'active', 1300.00, 20, 6, 'MBBS, DNB Geriatrics', 'Memory loss and dementia care specialist', '2026-04-01 05:52:40', '2026-04-01 05:52:40'),
 (43, 67, 'test', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-03 07:15:14', '2026-04-03 07:15:14'),
 (44, 68, 'Cardiologist', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-03 11:14:33', '2026-04-03 11:14:33'),
-(45, 69, 'Cardiologist', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-04 13:13:41', '2026-04-04 13:13:41');
+(45, 69, 'Cardiologist', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-04 13:13:41', '2026-04-04 13:13:41'),
+(46, 70, 'Cardiologist', 1, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-08 07:11:00', '2026-04-08 07:11:00'),
+(47, 71, 'Quis irure ipsa dis', 13, 'active', 500.00, 20, 0, NULL, NULL, '2026-04-08 11:50:51', '2026-04-08 11:51:53');
 
 -- --------------------------------------------------------
 
@@ -400,7 +404,18 @@ INSERT INTO `doctor_schedules` (`id`, `doctor_id`, `day_of_week`, `shift_type`, 
 (150, 44, 'Sunday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '---', '2026-04-03 11:16:32', '2026-04-03 11:16:32'),
 (151, 45, 'Monday', 'Morning', '09:00:00', '00:00:13', 15, 'active', '---', '2026-04-04 13:16:17', '2026-04-04 13:16:17'),
 (152, 45, 'Wednesday', 'Morning', '09:00:00', '00:00:13', 15, 'active', '---', '2026-04-04 13:16:17', '2026-04-04 13:16:17'),
-(153, 45, 'Friday', 'Morning', '09:00:00', '00:00:13', 15, 'active', '---', '2026-04-04 13:16:17', '2026-04-04 13:16:17');
+(153, 45, 'Friday', 'Morning', '09:00:00', '00:00:13', 15, 'active', '---', '2026-04-04 13:16:17', '2026-04-04 13:16:17'),
+(155, 46, 'Tuesday', 'Morning', '09:00:00', '00:00:13', 50, 'active', '----', '2026-04-08 07:11:46', '2026-04-08 07:11:46'),
+(156, 46, 'Wednesday', 'Morning', '09:00:00', '00:00:13', 50, 'active', '----', '2026-04-08 07:11:46', '2026-04-08 07:11:46'),
+(157, 46, 'Thursday', 'Morning', '09:00:00', '00:00:13', 50, 'active', '----', '2026-04-08 07:11:46', '2026-04-08 07:11:46'),
+(158, 46, 'Friday', 'Morning', '09:00:00', '00:00:13', 50, 'active', '----', '2026-04-08 07:11:46', '2026-04-08 07:11:46'),
+(159, 47, 'Monday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-08 11:51:21', '2026-04-08 11:51:21'),
+(160, 47, 'Tuesday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-08 11:51:21', '2026-04-08 11:51:21'),
+(161, 47, 'Wednesday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-08 11:51:21', '2026-04-08 11:51:21'),
+(162, 47, 'Thursday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-08 11:51:21', '2026-04-08 11:51:21'),
+(163, 47, 'Friday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-08 11:51:21', '2026-04-08 11:51:21'),
+(164, 47, 'Saturday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-08 11:51:21', '2026-04-08 11:51:21'),
+(165, 47, 'Sunday', 'Evening', '16:00:00', '00:00:20', 15, 'active', '----', '2026-04-08 11:51:21', '2026-04-08 11:51:21');
 
 -- --------------------------------------------------------
 
@@ -427,17 +442,16 @@ CREATE TABLE `patients` (
 --
 
 INSERT INTO `patients` (`id`, `name`, `age`, `weight`, `disease`, `gender`, `phone`, `address`, `blood_group`, `status`, `created_at`) VALUES
-(6, 'Rafael Hayden', 84, 68.00, 19, 'male', '+1 (473) 917-3347', 'Omnis elit rem nihi', 'AB-', 'active', '2026-04-03 06:13:06'),
-(7, 'Aiko Shields', 68, 71.00, 1, 'female', '+1 (189) 881-8116', 'Id quae laborum eaqu', 'AB+', 'active', '2026-04-03 06:13:59'),
-(8, 'Izhan Sajid', 29, 58.00, 17, 'male', '03177990549', 'Kohat', 'B-', 'active', '2026-04-03 06:15:07'),
-(9, 'Izhan Sajid', 56, 57.00, 18, 'male', '03177990549', 'Kohat', 'A+', 'active', '2026-04-03 06:33:21'),
-(10, 'Imogene Shaw', 22, 89.00, 13, 'male', '+1 (234) 569-2301', NULL, 'A+', 'active', '2026-04-03 10:38:48'),
-(11, 'Zahir Medina', 22, 65.00, 14, 'male', '+1 (809) 246-1207', 'kohat', 'A+', 'active', '2026-04-03 10:42:16'),
-(12, 'Martha Owen', 55, 54.00, 5, 'female', '+1 (534) 957-3482', 'Est aut sapiente eum', 'B+', 'active', '2026-04-03 10:51:43'),
-(13, 'Urielle Rhodes', 22, 58.00, 5, 'male', '+1 (672) 972-6024', 'Peshwar', 'A+', 'active', '2026-04-03 10:59:42'),
-(14, 'Ross Walsh', 3, 140.00, 5, 'male', '+1 (698) 704-5685', 'Qui et similique ver', 'B+', 'active', '2026-04-03 11:00:23'),
-(15, 'Riley Santiago', 118, 59.00, 5, 'female', '+1 (947) 642-7895', 'Officia qui rerum bl', 'A-', 'active', '2026-04-03 11:19:25'),
-(16, 'Izhan Sajid', 22, 67.00, 4, 'male', '03214785693', 'Kohat', '', 'active', '2026-04-04 13:08:00');
+(22, 'test', 23, 66.90, 6, 'male', '03177990549', 'wara', 'A-', 'active', '2026-04-06 11:08:02'),
+(23, 'Shani', 22, 33.00, 6, 'female', '+923214785693', 't-t', 'A-', 'active', '2026-04-06 11:08:36'),
+(24, 'Izhan Sajid', 22, 44.80, 6, 'male', '03214785693', 'Kohat', 'A+', 'active', '2026-04-06 11:09:29'),
+(25, 'Hammad', 67, 110.00, 19, 'male', '03177990549', 'Kohat', 'AB-', 'active', '2026-04-08 06:59:19'),
+(26, 'Zahid', 34, 45.00, 6, 'male', '03214785693', 'kohat', 'A+', 'active', '2026-04-08 07:03:18'),
+(28, 'salman ', 22, 68.00, 19, 'male', '0511565120', 'kohat', 'A+', 'active', '2026-04-08 11:43:03'),
+(29, 'Sajid Mehmood', 22, 56.00, 13, 'male', '03214785693', 'karachi', 'AB-', 'active', '2026-04-08 11:53:17'),
+(30, 'Iona Rojas', 102, 103.00, 13, 'other', '+1 (588) 603-1654', 'Ad reiciendis et qua', 'AB-', 'active', '2026-04-09 11:26:57'),
+(31, 'Faith Mayo', 22, 78.00, 13, 'male', '+1 (982) 763-5193', '-----kohat---', 'A+', 'active', '2026-04-09 11:37:14'),
+(32, 'Wesley Farrell', 22, 56.00, 15, 'male', '+1 (273) 581-6794', 'kohat', 'A+', 'active', '2026-04-10 05:40:00');
 
 -- --------------------------------------------------------
 
@@ -447,7 +461,7 @@ INSERT INTO `patients` (`id`, `name`, `age`, `weight`, `disease`, `gender`, `pho
 
 CREATE TABLE `payments` (
   `id` int(11) NOT NULL,
-  `appointment_id` int(11) NOT NULL,
+  `appointment_id` int(11) DEFAULT NULL,
   `patient_id` int(11) NOT NULL,
   `doctor_id` int(11) NOT NULL,
   `amount` decimal(10,2) NOT NULL,
@@ -457,25 +471,30 @@ CREATE TABLE `payments` (
   `payment_date` datetime DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `receptionist_id` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `payment_type` enum('appointment','test') NOT NULL DEFAULT 'appointment',
+  `record_test_id` int(11) DEFAULT NULL,
+  `lab_assistant_id` int(11) DEFAULT NULL,
+  `recorded_by_role` enum('receptionist','lab_assistant') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `payments`
 --
 
-INSERT INTO `payments` (`id`, `appointment_id`, `patient_id`, `doctor_id`, `amount`, `payment_method`, `status`, `transaction_id`, `payment_date`, `notes`, `receptionist_id`, `created_at`) VALUES
-(19, 9, 6, 38, 1900.00, 'cash', 'completed', '', '2026-04-03 08:13:32', '', NULL, '2026-04-03 06:13:32'),
-(20, 10, 7, 2, 1400.00, 'cash', 'completed', '', '2026-04-03 08:14:13', '', NULL, '2026-04-03 06:14:13'),
-(21, 11, 8, 34, 1100.00, 'cash', 'completed', '', '2026-04-03 08:15:08', '', NULL, '2026-04-03 06:15:08'),
-(22, 12, 9, 36, 1500.00, 'cash', 'completed', '', '2026-04-03 08:33:26', '', NULL, '2026-04-03 06:33:26'),
-(23, 13, 10, 25, 1500.00, 'cash', 'completed', '', '2026-04-03 12:40:22', '', NULL, '2026-04-03 10:40:22'),
-(24, 14, 11, 27, 1500.00, 'cash', 'completed', '', '2026-04-03 12:45:06', '', NULL, '2026-04-03 10:45:06'),
-(25, 15, 12, 10, 1200.00, 'cash', 'completed', '', '2026-04-03 12:58:33', '', NULL, '2026-04-03 10:58:33'),
-(26, 16, 13, 10, 1200.00, 'cash', 'completed', '', '2026-04-03 12:59:58', '', NULL, '2026-04-03 10:59:58'),
-(27, 17, 14, 10, 1200.00, 'cash', 'completed', '', '2026-04-03 13:09:00', '', NULL, '2026-04-03 11:09:00'),
-(28, 21, 15, 10, 1200.00, 'cash', 'completed', '', '2026-04-03 13:26:20', '', 65, '2026-04-03 11:26:20'),
-(29, 22, 16, 7, 1000.00, 'cash', 'completed', '', '2026-04-04 15:10:03', '', 65, '2026-04-04 13:10:03');
+INSERT INTO `payments` (`id`, `appointment_id`, `patient_id`, `doctor_id`, `amount`, `payment_method`, `status`, `transaction_id`, `payment_date`, `notes`, `receptionist_id`, `created_at`, `payment_type`, `record_test_id`, `lab_assistant_id`, `recorded_by_role`) VALUES
+(33, 26, 22, 12, 1300.00, 'cash', 'completed', '', '2026-04-06 13:08:15', '', 65, '2026-04-06 11:08:15', 'appointment', NULL, NULL, 'receptionist'),
+(34, 27, 23, 12, 1300.00, 'cash', 'completed', '', '2026-04-06 13:08:47', '', 65, '2026-04-06 11:08:47', 'appointment', NULL, NULL, 'receptionist'),
+(35, 28, 24, 12, 1300.00, 'cash', 'completed', '', '2026-04-06 13:09:41', '', 65, '2026-04-06 11:09:41', 'appointment', NULL, NULL, 'receptionist'),
+(36, 29, 25, 38, 1900.00, 'cash', 'completed', '', '2026-04-08 09:00:54', '', 65, '2026-04-08 07:00:54', 'appointment', NULL, NULL, 'receptionist'),
+(37, 30, 26, 38, 1900.00, 'cash', 'refunded', '', '2026-04-08 09:03:39', '', 65, '2026-04-08 07:03:39', 'appointment', NULL, NULL, 'receptionist'),
+(38, 31, 28, 38, 1900.00, 'cash', 'completed', '', '2026-04-08 13:43:17', '', 65, '2026-04-08 11:43:17', 'appointment', NULL, NULL, 'receptionist'),
+(39, 32, 29, 47, 500.00, 'cash', 'completed', '', '2026-04-08 13:53:31', '', 65, '2026-04-08 11:53:31', 'appointment', NULL, NULL, 'receptionist'),
+(40, 0, 28, 38, 500.00, 'cash', 'completed', NULL, '2026-04-09 04:15:09', 'record_id:2|test_id:1', 72, '2026-04-09 11:15:09', 'test', 1, 72, 'lab_assistant'),
+(41, 33, 30, 47, 500.00, 'cash', 'completed', '', '2026-04-09 16:27:21', '', 65, '2026-04-09 11:27:21', 'appointment', NULL, NULL, NULL),
+(42, 34, 31, 47, 500.00, 'cash', 'completed', '', '2026-04-09 16:37:28', '', 65, '2026-04-09 11:37:28', 'appointment', NULL, NULL, NULL),
+(43, 35, 32, 29, 1400.00, 'cash', 'completed', '', '2026-04-10 10:40:11', '', 65, '2026-04-10 05:40:11', 'appointment', NULL, NULL, NULL),
+(44, 0, 32, 29, 1500.00, 'cash', 'completed', NULL, '2026-04-09 23:48:23', 'record_id:4|tests:3|total:1500', NULL, '2026-04-10 06:48:23', 'test', 2, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -489,8 +508,18 @@ CREATE TABLE `prescriptions` (
   `medicine_name` varchar(100) DEFAULT NULL,
   `dosage` varchar(100) DEFAULT NULL,
   `duration` varchar(100) DEFAULT NULL,
-  `notes` text DEFAULT NULL
+  `notes` text DEFAULT NULL,
+  `has_tests` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `prescriptions`
+--
+
+INSERT INTO `prescriptions` (`id`, `record_id`, `medicine_name`, `dosage`, `duration`, `notes`, `has_tests`) VALUES
+(1, 1, 'Robert Albert', 'Nostrum explicabo E', 'Aut nisi ut officia ', 'Delectus ex tempora', 0),
+(2, 1, 'Orla Blankenship', 'Qui quod est nisi in', 'Molestiae et minima ', 'Sit qui modi quasi l', 0),
+(9, 4, 'panadol', '5mg', '3 days ', '--', 0);
 
 -- --------------------------------------------------------
 
@@ -502,12 +531,56 @@ CREATE TABLE `records` (
   `id` int(11) NOT NULL,
   `patient_id` int(11) DEFAULT NULL,
   `doctor_id` int(11) DEFAULT NULL,
+  `appointment_id` int(11) DEFAULT NULL,
   `visit_date` datetime DEFAULT NULL,
   `symptoms` text DEFAULT NULL,
   `diagnosis` text DEFAULT NULL,
   `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `has_tests` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `records`
+--
+
+INSERT INTO `records` (`id`, `patient_id`, `doctor_id`, `appointment_id`, `visit_date`, `symptoms`, `diagnosis`, `notes`, `created_at`, `has_tests`) VALUES
+(1, 25, 38, 29, '2026-04-08 09:08:12', 'Voluptatem eos quos ', 'Dolore excepturi ex ', 'Delectus eum aliqui', '2026-04-08 07:08:12', 0),
+(2, 28, 38, 31, '2026-04-09 23:16:35', 'test', 'test', 'test', '2026-04-09 18:16:35', 1),
+(3, 30, 47, 33, '2026-04-09 16:42:59', 'Rerum repudiandae qu', 'Fuga Sit natus ut p', 'Et at quia quas sit ', '2026-04-09 11:42:59', 1),
+(4, 32, 29, 35, '2026-04-10 11:18:48', 'Aut hic labore ea ea', 'In omnis sint aperia', 'Aliquip iusto conseq', '2026-04-10 06:18:48', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `record_tests`
+--
+
+CREATE TABLE `record_tests` (
+  `id` int(11) NOT NULL,
+  `record_id` int(11) NOT NULL,
+  `test_id` int(11) NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `payment_status` enum('pending','paid') DEFAULT 'pending',
+  `result` text DEFAULT NULL,
+  `status` enum('pending','sample_collected','completed') DEFAULT 'pending',
+  `wait_time` int(11) DEFAULT 0,
+  `payment_id` int(11) DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `interpretation` varchar(100) DEFAULT NULL,
+  `remarks` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `record_tests`
+--
+
+INSERT INTO `record_tests` (`id`, `record_id`, `test_id`, `notes`, `created_at`, `payment_status`, `result`, `status`, `wait_time`, `payment_id`, `completed_at`, `interpretation`, `remarks`) VALUES
+(1, 2, 1, 'Initial CBC for Salman', '2026-04-09 11:12:39', 'paid', '12', 'completed', 15, 40, '2026-04-09 04:15:32', NULL, NULL),
+(2, 4, 2, 'Consequuntur maiores', '2026-04-10 06:18:48', 'paid', '76', 'completed', 45, 44, '2026-04-10 00:18:18', 'Normal', '---'),
+(3, 4, 18, 'Consequuntur maiores', '2026-04-10 06:18:48', 'paid', '1.8', 'completed', 45, 44, '2026-04-10 00:27:57', 'Normal', '-----'),
+(4, 4, 28, 'Consequuntur maiores', '2026-04-10 06:18:48', 'paid', '5.00', 'completed', 45, 44, '2026-04-10 00:28:19', 'Borderline', '-----');
 
 -- --------------------------------------------------------
 
@@ -527,7 +600,8 @@ CREATE TABLE `roles` (
 INSERT INTO `roles` (`id`, `name`) VALUES
 (1, 'admin'),
 (2, 'doctor'),
-(3, 'receptionist');
+(3, 'receptionist'),
+(4, 'lab_assistant');
 
 -- --------------------------------------------------------
 
@@ -550,6 +624,62 @@ CREATE TABLE `staff` (
 
 INSERT INTO `staff` (`id`, `user_id`, `position`, `shift`, `address`, `created_at`) VALUES
 (1, 65, 'Receptionist', 'Morning', 'Main Reception Desk', '2026-04-02 09:27:52');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tests`
+--
+
+CREATE TABLE `tests` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `icon` varchar(50) DEFAULT NULL,
+  `status` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `fee` decimal(10,2) DEFAULT 500.00,
+  `reference_range_male` varchar(100) DEFAULT NULL,
+  `reference_range_female` varchar(100) DEFAULT NULL,
+  `unit` varchar(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `tests`
+--
+
+INSERT INTO `tests` (`id`, `name`, `description`, `icon`, `status`, `created_at`, `updated_at`, `fee`, `reference_range_male`, `reference_range_female`, `unit`) VALUES
+(1, 'CBC', 'Complete Blood Count test', 'fa-vial', 'active', '2026-04-08 06:54:53', '2026-04-09 11:20:13', 500.00, '13.5-17.5', '12.0-15.5', 'g/dL'),
+(2, 'Blood Sugar Fasting', 'Measures fasting glucose level', 'fa-tint', 'active', '2026-04-08 06:54:53', '2026-04-09 11:20:13', 500.00, '70-99', '70-99', 'mg/dL'),
+(3, 'Blood Sugar Random', 'Random glucose level test', 'fa-tint', 'active', '2026-04-08 06:54:53', '2026-04-09 11:20:13', 500.00, '70-99', '70-99', 'mg/dL'),
+(4, 'HbA1c', 'Average blood sugar over 3 months', 'fa-chart-line', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '4.0-5.6', '4.0-5.6', '%'),
+(5, 'Lipid Profile', 'Cholesterol and triglycerides test', 'fa-heart', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '<200 (Desirable)', '<200 (Desirable)', 'mg/dL'),
+(6, 'Liver Function Test', 'Checks liver health', 'fa-procedures', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '10-40', '7-35', 'U/L'),
+(7, 'Kidney Function Test', 'Checks kidney performance', 'fa-filter', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '8-20', '8-20', 'mg/dL'),
+(8, 'Urine Complete', 'Urine analysis test', 'fa-flask', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, 'Normal (No protein, glucose, ketones)', 'Normal (No protein, glucose, ketones)', '-'),
+(9, 'Serum Creatinine', 'Measures kidney function', 'fa-vial', 'active', '2026-04-08 06:54:53', '2026-04-09 11:20:13', 500.00, '0.7-1.3', '0.6-1.1', 'mg/dL'),
+(10, 'Blood Urea', 'Checks waste in blood', 'fa-vial', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '15-45', '15-45', 'mg/dL'),
+(11, 'Thyroid Profile', 'Thyroid hormone levels', 'fa-brain', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '0.4-4.0', '0.4-4.0', 'mIU/L'),
+(12, 'TSH', 'Thyroid Stimulating Hormone test', 'fa-brain', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '0.4-4.0', '0.4-4.0', 'mIU/L'),
+(13, 'T3', 'Triiodothyronine hormone test', 'fa-brain', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '80-200', '80-200', 'ng/dL'),
+(14, 'T4', 'Thyroxine hormone test', 'fa-brain', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '5.0-12.0', '5.0-12.0', 'µg/dL'),
+(15, 'Calcium Test', 'Measures calcium level', 'fa-bone', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '8.6-10.2', '8.6-10.2', 'mg/dL'),
+(16, 'Vitamin D Test', 'Checks vitamin D level', 'fa-sun', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '20-50 (Normal)', '20-50 (Normal)', 'ng/mL'),
+(17, 'Vitamin B12', 'Measures B12 level', 'fa-capsules', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '200-900', '200-900', 'pg/mL'),
+(18, 'CRP', 'C-Reactive Protein test for inflammation', 'fa-fire', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '<3.0', '<3.0', 'mg/L'),
+(19, 'ESR', 'Erythrocyte Sedimentation Rate', 'fa-hourglass', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, '0-15', '0-20', 'mm/hr'),
+(20, 'Dengue Test', 'Detects dengue infection', 'fa-bug', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, 'Negative', 'Negative', '-'),
+(21, 'Malaria Test', 'Detects malaria parasite', 'fa-bug', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, 'Negative', 'Negative', '-'),
+(22, 'Typhoid Test', 'Detects typhoid fever', 'fa-thermometer', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, 'Negative', 'Negative', '-'),
+(23, 'COVID-19 PCR', 'Coronavirus detection test', 'fa-virus', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, 'Negative', 'Negative', '-'),
+(24, 'Hepatitis B', 'Detects Hepatitis B virus', 'fa-shield-virus', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, 'Negative', 'Negative', '-'),
+(25, 'Hepatitis C', 'Detects Hepatitis C virus', 'fa-shield-virus', 'active', '2026-04-08 06:54:53', '2026-04-10 06:32:32', 500.00, 'Negative', 'Negative', '-'),
+(26, 'X-Ray', 'Radiology imaging test', 'fa-x-ray', 'active', '2026-04-08 06:54:53', '2026-04-08 06:54:53', 500.00, NULL, NULL, NULL),
+(27, 'Ultrasound', 'Imaging using sound waves', 'fa-wave-square', 'active', '2026-04-08 06:54:53', '2026-04-08 06:54:53', 500.00, NULL, NULL, NULL),
+(28, 'ECG', 'Heart electrical activity test', 'fa-heartbeat', 'active', '2026-04-08 06:54:53', '2026-04-08 06:54:53', 500.00, NULL, NULL, NULL),
+(29, 'Echo', 'Heart ultrasound test', 'fa-heart', 'active', '2026-04-08 06:54:53', '2026-04-08 06:54:53', 500.00, NULL, NULL, NULL),
+(30, 'MRI', 'Magnetic Resonance Imaging', 'fa-magnet', 'active', '2026-04-08 06:54:53', '2026-04-08 06:54:53', 500.00, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -619,7 +749,10 @@ INSERT INTO `users` (`id`, `role_id`, `name`, `email`, `phone`, `password`, `sta
 (66, 3, 'Receptionist Evening', 'reception2@gmail.com', '03009998877', '123456', 'active', '2026-04-02 09:30:52', '2026-04-02 09:30:52'),
 (67, 2, 'Izhan Sajid', 'izhan@gmail.com', '03214785693', '123', 'active', '2026-04-03 07:15:14', NULL),
 (68, 2, 'Test 2', 'test2@gmail.com', '032147856432', '123', 'active', '2026-04-03 11:14:33', NULL),
-(69, 2, 'Muhammad Hasan``', 'hassan@gmail.com', '03369211850', '123', 'inactive', '2026-04-04 13:13:41', NULL);
+(69, 2, 'Muhammad Hasan``', 'hassan@gmail.com', '03369211850', '123', 'active', '2026-04-04 13:13:41', NULL),
+(70, 2, 'Hammad', 'hamad@gmail.com', '036446649685', '123', 'active', '2026-04-08 07:11:00', NULL),
+(71, 2, 'Kareem Whitaker', 'kareem@gmail.com', '+1 (533) 113-5934', '123', 'active', '2026-04-08 11:50:51', NULL),
+(72, 4, 'Lab Assistant', 'lab.assistant@prms.com', '03005555555', '123456', 'active', '2026-04-09 06:56:39', '2026-04-09 06:56:39');
 
 --
 -- Indexes for dumped tables
@@ -645,8 +778,8 @@ ALTER TABLE `appointments`
 --
 ALTER TABLE `call_appointments`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `doctor_id` (`doctor_id`),
-  ADD KEY `disease_id` (`disease_id`);
+  ADD KEY `disease_id` (`disease_id`),
+  ADD KEY `call_appointments_ibfk_1` (`doctor_id`);
 
 --
 -- Indexes for table `categories`
@@ -681,7 +814,9 @@ ALTER TABLE `patients`
 ALTER TABLE `payments`
   ADD PRIMARY KEY (`id`),
   ADD KEY `appointment_id` (`appointment_id`),
-  ADD KEY `patient_id` (`patient_id`);
+  ADD KEY `patient_id` (`patient_id`),
+  ADD KEY `idx_payment_type` (`payment_type`),
+  ADD KEY `idx_recorded_by_role` (`recorded_by_role`);
 
 --
 -- Indexes for table `prescriptions`
@@ -696,7 +831,15 @@ ALTER TABLE `prescriptions`
 ALTER TABLE `records`
   ADD PRIMARY KEY (`id`),
   ADD KEY `patient_id` (`patient_id`),
-  ADD KEY `doctor_id` (`doctor_id`);
+  ADD KEY `doctor_id` (`doctor_id`),
+  ADD KEY `appointment_id` (`appointment_id`);
+
+--
+-- Indexes for table `record_tests`
+--
+ALTER TABLE `record_tests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_payment_id` (`payment_id`);
 
 --
 -- Indexes for table `roles`
@@ -710,6 +853,12 @@ ALTER TABLE `roles`
 ALTER TABLE `staff`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `tests`
+--
+ALTER TABLE `tests`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `users`
@@ -726,19 +875,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `announcements`
 --
 ALTER TABLE `announcements`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `call_appointments`
 --
 ALTER TABLE `call_appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -750,43 +899,49 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `doctors`
 --
 ALTER TABLE `doctors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `doctor_schedules`
 --
 ALTER TABLE `doctor_schedules`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=166;
 
 --
 -- AUTO_INCREMENT for table `patients`
 --
 ALTER TABLE `patients`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `prescriptions`
 --
 ALTER TABLE `prescriptions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `records`
 --
 ALTER TABLE `records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `record_tests`
+--
+ALTER TABLE `record_tests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `staff`
@@ -795,10 +950,16 @@ ALTER TABLE `staff`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `tests`
+--
+ALTER TABLE `tests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- Constraints for dumped tables
@@ -816,7 +977,7 @@ ALTER TABLE `appointments`
 -- Constraints for table `call_appointments`
 --
 ALTER TABLE `call_appointments`
-  ADD CONSTRAINT `call_appointments_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `call_appointments_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
   ADD CONSTRAINT `call_appointments_ibfk_2` FOREIGN KEY (`disease_id`) REFERENCES `categories` (`id`);
 
 --
@@ -836,7 +997,6 @@ ALTER TABLE `doctor_schedules`
 -- Constraints for table `payments`
 --
 ALTER TABLE `payments`
-  ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`) ON DELETE CASCADE;
 
 --
@@ -850,7 +1010,8 @@ ALTER TABLE `prescriptions`
 --
 ALTER TABLE `records`
   ADD CONSTRAINT `records_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
-  ADD CONSTRAINT `records_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`);
+  ADD CONSTRAINT `records_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
+  ADD CONSTRAINT `records_ibfk_3` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`);
 
 --
 -- Constraints for table `staff`

@@ -7,7 +7,7 @@
 
 // Fix: Check if BASE_URL is already defined before defining it
 if (!defined('BASE_URL')) {
-    define('BASE_URL', 'http://localhost/PRMS/');
+    define('BASE_URL', 'http://localhost/prms/');
 }
 
 $role_id = isset($_SESSION['role_id']) ? $_SESSION['role_id'] : 0;
@@ -467,6 +467,7 @@ if ($role_name !== 'admin') {
             if ($role_name == 'admin') $dashboard_url .= "admin/dashboard.php";
             elseif ($role_name == 'doctor') $dashboard_url .= "doctor/dashboard.php";
             elseif ($role_name == 'receptionist') $dashboard_url .= "receptionist/dashboard.php";
+            elseif ($role_name == 'lab_assistant') $dashboard_url .= "lab_assistant/dashboard.php";
             else $dashboard_url .= "index.php";
             ?>
             <a href="<?= $dashboard_url ?>" class="nav-link-custom <?= ($current_page == 'dashboard.php') ? 'active' : '' ?>">
@@ -738,6 +739,53 @@ if ($role_name !== 'admin') {
 
             <li class="nav-item">
                 <a href="<?= BASE_URL ?>receptionist/profile.php" class="nav-link-custom <?= ($current_page == 'profile.php') ? 'active' : '' ?>">
+                    <i class="fas fa-user-circle"></i>
+                    <span>My Profile</span>
+                </a>
+            </li>
+
+        <?php elseif ($role_name == 'lab_assistant'): // Lab Assistant Menu 
+        ?>
+            <div class="nav-group-title">
+                <i class="fas fa-microscope"></i>
+                <span>LABORATORY</span>
+            </div>
+
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>lab_assistant/search_patient.php" class="nav-link-custom <?= ($current_page == 'search_patient.php') ? 'active' : '' ?>">
+                    <i class="fas fa-search-plus"></i>
+                    <span>Search Patient</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>lab_assistant/pending_tests.php" class="nav-link-custom <?= ($current_page == 'pending_tests.php') ? 'active' : '' ?>">
+                    <i class="fas fa-vials"></i>
+                    <span>Pending Tests</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>lab_assistant/completed_tests.php" class="nav-link-custom <?= ($current_page == 'completed_tests.php') ? 'active' : '' ?>">
+                    <i class="fas fa-check-double"></i>
+                    <span>Completed Tests</span>
+                </a>
+            </li>
+
+            <div class="nav-group-title">
+                <i class="fas fa-wallet"></i>
+                <span>LAB FINANCIALS</span>
+            </div>
+
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>lab_assistant/payments.php" class="nav-link-custom <?= ($current_page == 'payments.php') ? 'active' : '' ?>">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Lab Collections</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>lab_assistant/profile.php" class="nav-link-custom <?= ($current_page == 'profile.php') ? 'active' : '' ?>">
                     <i class="fas fa-user-circle"></i>
                     <span>My Profile</span>
                 </a>

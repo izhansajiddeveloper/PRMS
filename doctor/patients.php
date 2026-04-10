@@ -31,7 +31,8 @@ $patients_query = "SELECT DISTINCT p.*,
                        WHEN r.id IS NOT NULL THEN 1 
                        ELSE 0 
                    END as has_record,
-                   r.id as record_id
+                   r.id as record_id,
+                   (SELECT COUNT(*) FROM prescriptions WHERE record_id = r.id) as prescriptions_count
                    FROM patients p
                    JOIN appointments a ON p.id = a.patient_id
                    LEFT JOIN records r ON r.patient_id = p.id AND r.doctor_id = a.doctor_id AND DATE(r.visit_date) = DATE(a.appointment_date)
@@ -166,6 +167,34 @@ include '../includes/sidebar.php';
                             <?php while ($patient = mysqli_fetch_assoc($patients_result)):
                                 $can_add_record = ($patient['appointment_status'] == 'pending' && $patient['has_record'] == 0);
                                 $has_record = $patient['has_record'] == 1;
+                                $has_prescriptions = $patient['prescriptions_count'] > 0;
+
+                                // Determine effective status
+                                $effective_status = $patient['appointment_status'];
+                                $status_text = '';
+                                $status_color = '';
+
+                                if ($has_record && $has_prescriptions) {
+                                    $effective_status = 'completed';
+                                    $status_text = 'Completed';
+                                    $status_color = 'bg-green-100 text-green-800';
+                                    $status_icon = 'fa-check-circle';
+                                } elseif ($has_record && !$has_prescriptions) {
+                                    $effective_status = 'pending_rx';
+                                    $status_text = 'Record Ready';
+                                    $status_color = 'bg-blue-100 text-blue-800';
+                                    $status_icon = 'fa-file-medical';
+                                } elseif ($patient['appointment_status'] == 'pending') {
+                                    $effective_status = 'pending';
+                                    $status_text = 'Pending';
+                                    $status_color = 'bg-yellow-100 text-yellow-800';
+                                    $status_icon = 'fa-clock';
+                                } else {
+                                    $effective_status = 'cancelled';
+                                    $status_text = 'Cancelled';
+                                    $status_color = 'bg-red-100 text-red-800';
+                                    $status_icon = 'fa-times-circle';
+                                }
                             ?>
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-4">
@@ -201,80 +230,76 @@ include '../includes/sidebar.php';
                                         <?php echo date('d M Y, h:i A', strtotime($patient['appointment_date'])); ?>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <?php if ($patient['appointment_status'] == 'completed'): ?>
-                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                                <i class="fas fa-check-circle mr-1"></i> Completed
-                                            </span>
-                                        <?php elseif ($patient['appointment_status'] == 'pending'): ?>
-                                            <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-                                                <i class="fas fa-clock mr-1"></i> Pending
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
-                                                <i class="fas fa-times-circle mr-1"></i> Cancelled
-                                            </span>
-                                        <?php endif; ?>
+                                        <span class="px-2 py-1 text-xs rounded-full <?php echo $status_color; ?>">
+                                            <i class="fas <?php echo $status_icon; ?> mr-1"></i> <?php echo $status_text; ?>
+                                        </span>
                                         <?php if ($has_record): ?>
                                             <span class="ml-1 px-1 py-0.5 text-xs rounded bg-blue-100 text-blue-600">
                                                 <i class="fas fa-file-medical"></i> Recorded
                                             </span>
                                         <?php endif; ?>
+                                        <?php if ($has_record && !$has_prescriptions): ?>
+                                            <span class="ml-1 text-[9px] text-orange-600">(Rx Pending)</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <div class="flex space-x-2">
-                                            <?php if ($patient['appointment_status'] == 'pending'): ?>
-                                                <a href="records/view.php?patient_id=<?php echo $patient['id']; ?>"
-                                                    class="text-green-600 hover:text-green-800 transition" title="View Records">
-                                                    <i class="fas fa-notes-medical"></i>
+                                        <div class="flex space-x-3">
+                                            <!-- View Records Button -->
+                                            <a href="records/view.php?patient_id=<?php echo $patient['id']; ?>"
+                                                class="text-blue-600 hover:text-blue-800 transition text-lg" title="View Records">
+                                                <i class="fas fa-notes-medical"></i>
+                                            </a>
+
+                                            <!-- Add Record Button (only for pending appointments without record) -->
+                                            <?php if ($patient['appointment_status'] == 'pending' && !$has_record): ?>
+                                                <a href="records/create.php?patient_id=<?php echo $patient['id']; ?>"
+                                                    class="text-green-600 hover:text-green-800 transition text-lg" title="Add New Record">
+                                                    <i class="fas fa-plus-circle"></i>
                                                 </a>
-                                                <?php if ($can_add_record): ?>
-                                                    <a href="records/create.php?patient_id=<?php echo $patient['id']; ?>"
-                                                        class="text-blue-600 hover:text-blue-800 transition" title="Add New Record">
-                                                        <i class="fas fa-plus-circle"></i>
-                                                    </a>
-                                                <?php else: ?>
-                                                    <span class="text-gray-400 cursor-not-allowed" title="<?php echo $has_record ? 'Record already exists for this appointment' : 'Selection not available'; ?>">
-                                                        <i class="fas fa-plus-circle"></i>
-                                                    </span>
-                                                <?php endif; ?>
-                                            <?php else: ?>
-                                                <!-- Actions disabled for completed/cancelled -->
-                                                <span class="text-gray-300 cursor-not-allowed" title="Action locked - Consultation <?php echo $patient['appointment_status']; ?>">
-                                                    <i class="fas fa-notes-medical opacity-50"></i>
+                                            <?php elseif ($has_record && !$has_prescriptions): ?>
+                                                <a href="javascript:void(0)"
+                                                    onclick="openPrescriptionFromPatients(<?php echo $patient['record_id']; ?>, '<?php echo htmlspecialchars($patient['name']); ?>')"
+                                                    class="text-purple-600 hover:text-purple-800 transition text-lg" title="Add Prescription">
+                                                    <i class="fas fa-prescription-bottle-alt"></i>
+                                                </a>
+                                            <?php elseif ($has_record && $has_prescriptions): ?>
+                                                <span class="text-gray-300 text-lg cursor-not-allowed" title="Prescriptions already added">
+                                                    <i class="fas fa-check-circle"></i>
                                                 </span>
-                                                <span class="text-gray-300 cursor-not-allowed" title="Action locked - Consultation <?php echo $patient['appointment_status']; ?>">
+                                            <?php else: ?>
+                                                <span class="text-gray-300 text-lg cursor-not-allowed" title="Action not available">
                                                     <i class="fas fa-plus-circle opacity-50"></i>
                                                 </span>
                                             <?php endif; ?>
-                                            
+
+                                            <!-- Quick View Button -->
                                             <a href="javascript:void(0)"
-                                                onclick="viewPatient(<?php echo $patient['id']; ?>, '<?php echo htmlspecialchars($patient['name']); ?>', <?php echo $patient['age']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo htmlspecialchars($patient['blood_group']); ?>', '<?php echo htmlspecialchars($patient['address']); ?>', '<?php echo $patient['appointment_status']; ?>', <?php echo $can_add_record ? 'true' : 'false'; ?>)"
-                                                class="text-purple-600 hover:text-purple-800 transition" title="Quick View">
+                                                onclick="viewPatient(<?php echo $patient['id']; ?>, '<?php echo htmlspecialchars($patient['name']); ?>', <?php echo $patient['age']; ?>, '<?php echo $patient['gender']; ?>', '<?php echo htmlspecialchars($patient['phone']); ?>', '<?php echo htmlspecialchars($patient['blood_group']); ?>', '<?php echo htmlspecialchars($patient['address']); ?>', '<?php echo $effective_status; ?>', <?php echo $can_add_record ? 'true' : 'false'; ?>)"
+                                                class="text-purple-600 hover:text-purple-800 transition text-lg" title="Quick View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                         </div>
                                     </td>
-            </tr>
-        <?php endwhile; ?>
-    <?php else: ?>
-        <tr>
-            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                <i class="fas fa-users text-4xl mb-3 opacity-50"></i>
-                <p>No patients found</p>
-                <?php if ($search): ?>
-                    <p class="text-sm mt-1">Try a different search term</p>
-                <?php else: ?>
-                    <p class="text-sm mt-1">Patients with appointments will appear here</p>
-                <?php endif; ?>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                    <i class="fas fa-users text-4xl mb-3 opacity-50"></i>
+                                    <p>No patients found</p>
+                                    <?php if ($search): ?>
+                                        <p class="text-sm mt-1">Try a different search term</p>
+                                    <?php else: ?>
+                                        <p class="text-sm mt-1">Patients with appointments will appear here</p>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        </td>
-        </tr>
-    <?php endif; ?>
-    </tbody>
     </div>
-</div>
-</div>
-</div>
 </div>
 
 <!-- Patient Quick View Modal -->
@@ -303,6 +328,48 @@ include '../includes/sidebar.php';
     </div>
 </div>
 
+<!-- Prescription Modal -->
+<div id="prescriptionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 rounded-t-2xl flex justify-between items-center">
+            <div>
+                <h3 class="font-bold text-white text-xl">Add Prescription</h3>
+                <p class="text-purple-100 text-sm" id="modalPatientName">Patient: </p>
+            </div>
+            <button onclick="closePrescriptionModal()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+        </div>
+
+        <form id="prescriptionForm" class="p-6">
+            <input type="hidden" name="record_id" id="prescriptionRecordId">
+            <input type="hidden" name="add_prescription_ajax" value="1">
+
+            <div id="prescRows" class="space-y-3">
+                <div class="presc-row bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div class="grid grid-cols-3 gap-3 mb-2">
+                        <input type="text" name="medicine_name[]" placeholder="Medicine Name"
+                            class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                        <input type="text" name="dosage[]" placeholder="Dosage (e.g. 500mg)"
+                            class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                        <input type="text" name="duration[]" placeholder="Duration (e.g. 7 days)"
+                            class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                    </div>
+                    <input type="text" name="prescription_notes[]" placeholder="Instructions (optional)"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none">
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-4">
+                <button type="button" onclick="addPrescRow()" class="text-sm text-purple-600 font-bold hover:underline flex items-center gap-1">
+                    <i class="fas fa-plus"></i> Add Another Medicine
+                </button>
+                <button type="submit" class="ml-auto bg-purple-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-purple-700 transition shadow-md flex items-center gap-2">
+                    <i class="fas fa-save"></i> Save Prescription(s)
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     function viewPatient(id, name, age, gender, phone, bloodGroup, address, status, canAddRecord) {
         const modal = document.getElementById('patientModal');
@@ -315,6 +382,8 @@ include '../includes/sidebar.php';
             statusBadge = '<span class="px-2 py-0.5 text-[10px] rounded-full bg-green-100 text-green-800 ml-2">Completed</span>';
         } else if (status === 'cancelled') {
             statusBadge = '<span class="px-2 py-0.5 text-[10px] rounded-full bg-red-100 text-red-800 ml-2">Cancelled</span>';
+        } else if (status === 'pending_rx') {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-800 ml-2">Record Ready</span>';
         } else {
             statusBadge = '<span class="px-2 py-0.5 text-[10px] rounded-full bg-yellow-100 text-yellow-800 ml-2">Pending</span>';
         }
@@ -356,12 +425,12 @@ include '../includes/sidebar.php';
         addRecordBtn.href = `records/create.php?patient_id=${id}`;
 
         // Hide action buttons if not pending
-        if (status !== 'pending') {
+        if (status !== 'pending' && status !== 'pending_rx') {
             viewRecordsBtn.classList.add('hidden');
             addRecordBtn.classList.add('hidden');
         } else {
             viewRecordsBtn.classList.remove('hidden');
-            if (canAddRecord) {
+            if (canAddRecord && status === 'pending') {
                 addRecordBtn.classList.remove('hidden');
             } else {
                 addRecordBtn.classList.add('hidden');
@@ -382,4 +451,80 @@ include '../includes/sidebar.php';
             modal.classList.add('hidden');
         }
     }
+
+    // Prescription Modal Functions
+    function openPrescriptionFromPatients(recordId, patientName) {
+        document.getElementById('prescriptionRecordId').value = recordId;
+        document.getElementById('modalPatientName').innerHTML = 'Patient: ' + patientName;
+        document.getElementById('prescriptionModal').classList.remove('hidden');
+        document.getElementById('prescriptionModal').classList.add('flex');
+    }
+
+    function closePrescriptionModal() {
+        document.getElementById('prescriptionModal').classList.add('hidden');
+        document.getElementById('prescriptionModal').classList.remove('flex');
+        // Reset form
+        document.getElementById('prescriptionForm').reset();
+        const container = document.getElementById('prescRows');
+        container.innerHTML = `
+            <div class="presc-row bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div class="grid grid-cols-3 gap-3 mb-2">
+                    <input type="text" name="medicine_name[]" placeholder="Medicine Name"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                    <input type="text" name="dosage[]" placeholder="Dosage (e.g. 500mg)"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                    <input type="text" name="duration[]" placeholder="Duration (e.g. 7 days)"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                </div>
+                <input type="text" name="prescription_notes[]" placeholder="Instructions (optional)"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none">
+            </div>
+        `;
+    }
+
+    function addPrescRow() {
+        const container = document.getElementById('prescRows');
+        const row = document.createElement('div');
+        row.className = 'presc-row bg-gray-50 rounded-xl p-4 border border-gray-100 relative';
+        row.innerHTML = `
+            <div class="absolute top-2 right-2">
+                <button type="button" onclick="this.closest('.presc-row').remove()" class="text-red-400 hover:text-red-600 text-sm">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mb-2">
+                <input type="text" name="medicine_name[]" placeholder="Medicine Name" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                <input type="text" name="dosage[]" placeholder="Dosage (e.g. 500mg)" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                <input type="text" name="duration[]" placeholder="Duration (e.g. 7 days)" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+            </div>
+            <input type="text" name="prescription_notes[]" placeholder="Instructions (optional)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none">
+        `;
+        container.appendChild(row);
+    }
+
+    document.getElementById('prescriptionForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        const response = await fetch('patients.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert(result.message);
+        }
+    });
+
+    // Close prescription modal on outside click
+    document.getElementById('prescriptionModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePrescriptionModal();
+        }
+    });
 </script>

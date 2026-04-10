@@ -13,6 +13,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
         case 'receptionist':
             header("Location: ../receptionist/dashboard.php");
             break;
+        case 'lab_assistant':
+            header("Location: ../lab_assistant/dashboard.php");
+            break;
         default:
             header("Location: ../index.php");
     }
@@ -82,6 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     break;
                 case 'receptionist':
                     header("Location: ../receptionist/dashboard.php");
+                    break;
+                case 'lab_assistant':
+                    header("Location: ../lab_assistant/dashboard.php");
                     break;
                 default:
                     header("Location: ../index.php");

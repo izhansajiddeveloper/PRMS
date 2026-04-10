@@ -70,6 +70,48 @@ $this_month_records_query = "SELECT COUNT(*) as total FROM records WHERE doctor_
 $this_month_records_result = mysqli_query($conn, $this_month_records_query);
 $this_month_records = mysqli_fetch_assoc($this_month_records_result)['total'];
 
+// Handle prescription submission via AJAX
+$presc_success = '';
+$presc_error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_prescription_ajax'])) {
+    header('Content-Type: application/json');
+    $record_id = (int)$_POST['record_id'];
+    $medicines = $_POST['medicine_name'] ?? [];
+    $dosages = $_POST['dosage'] ?? [];
+    $durations = $_POST['duration'] ?? [];
+    $p_notes = $_POST['prescription_notes'] ?? [];
+
+    // Check if prescriptions already exist
+    $check_pres = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM prescriptions WHERE record_id = $record_id");
+    $pres_count = mysqli_fetch_assoc($check_pres)['cnt'];
+
+    if ($pres_count > 0) {
+        echo json_encode(['success' => false, 'message' => 'Prescriptions already added for this record']);
+        exit();
+    }
+
+    $added = 0;
+    for ($i = 0; $i < count($medicines); $i++) {
+        if (!empty($medicines[$i])) {
+            $mn = mysqli_real_escape_string($conn, $medicines[$i]);
+            $dos = mysqli_real_escape_string($conn, $dosages[$i]);
+            $dur = mysqli_real_escape_string($conn, $durations[$i]);
+            $pn = mysqli_real_escape_string($conn, $p_notes[$i]);
+            $pi = "INSERT INTO prescriptions (record_id, medicine_name, dosage, duration, notes) VALUES (?, ?, ?, ?, ?)";
+            $ps = mysqli_prepare($conn, $pi);
+            mysqli_stmt_bind_param($ps, 'issss', $record_id, $mn, $dos, $dur, $pn);
+            if (mysqli_stmt_execute($ps)) $added++;
+        }
+    }
+
+    if ($added > 0) {
+        echo json_encode(['success' => true, 'message' => "$added prescription(s) added successfully", 'count' => $added]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Please fill at least one medicine']);
+    }
+    exit();
+}
+
 include '../../includes/header.php';
 include '../../includes/sidebar.php';
 ?>
@@ -173,6 +215,7 @@ include '../../includes/sidebar.php';
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symptoms</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diagnosis</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lab Tests</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prescriptions</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
@@ -184,6 +227,16 @@ include '../../includes/sidebar.php';
                                 $pres_count_query = "SELECT COUNT(*) as total FROM prescriptions WHERE record_id = " . $record['id'];
                                 $pres_count_result = mysqli_query($conn, $pres_count_query);
                                 $pres_count = mysqli_fetch_assoc($pres_count_result)['total'];
+
+                                // Get test info
+                                $test_info_query = "SELECT 
+                                    COUNT(*) as total_tests,
+                                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_tests
+                                    FROM record_tests WHERE record_id = " . $record['id'];
+                                $test_info_result = mysqli_query($conn, $test_info_query);
+                                $test_info = mysqli_fetch_assoc($test_info_result);
+
+                                $all_tests_completed = ($test_info['total_tests'] > 0 && $test_info['total_tests'] == $test_info['completed_tests']);
                             ?>
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-4 text-sm text-gray-800">
@@ -209,23 +262,68 @@ include '../../includes/sidebar.php';
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                            <i class="fas fa-pills mr-1"></i> <?php echo $pres_count; ?> medicines
-                                        </span>
+                                        <?php if ($record['has_tests']): ?>
+                                            <?php if ($test_info['total_tests'] > 0): ?>
+                                                <?php if ($all_tests_completed): ?>
+                                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                                        <i class="fas fa-check-circle mr-1"></i> Results Ready
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 animate-pulse">
+                                                        <i class="fas fa-microscope mr-1"></i> Lab Processing
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+                                                    <i class="fas fa-hourglass-start mr-1"></i> Waiting Lab Visit
+                                                </span>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-gray-50 text-gray-400">
+                                                No Tests
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <?php if ($pres_count > 0): ?>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-pills mr-1"></i> <?php echo $pres_count; ?> medicines
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
+                                                0 medicines
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex space-x-2">
+                                            <!-- Eye Icon for View Report -->
+                                            <a href="report.php?id=<?php echo $record['id']; ?>"
+                                                class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center" title="View Patient Report">
+                                                <i class="fas fa-eye mr-1"></i>
+                                                <!-- <span class="text-xs font-bold">Report</span> -->
+                                            </a>
+                                            <!-- Add Prescription Button (only if no prescriptions and tests are completed or no tests) -->
+                                            <?php if ($pres_count == 0 && (!$record['has_tests'] || $all_tests_completed)): ?>
+                                                <button onclick="openPrescriptionModal(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>')"
+                                                    class="bg-purple-500 text-white p-2 rounded-lg hover:bg-purple-600 transition flex items-center justify-center" title="Add Prescription">
+                                                    <i class="fas fa-prescription-bottle-alt mr-1"></i>
+                                                    <!-- <span class="text-xs font-bold">Add Rx</span> -->
+                                                </button>
+                                            <?php endif; ?>
+                                            <!-- Manage Button -->
                                             <a href="view.php?id=<?php echo $record['id']; ?>"
-                                                class="text-green-600 hover:text-green-800 transition" title="View Details">
-                                                <i class="fas fa-eye"></i>
+                                                class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition flex items-center justify-center" title="Manage Record">
+                                                <i class="fas fa-file-medical-alt mr-1"></i>
+                                                <!-- <span class="text-xs font-bold">Manage</span> -->
                                             </a>
                                             <a href="edit.php?id=<?php echo $record['id']; ?>"
-                                                class="text-blue-600 hover:text-blue-800 transition" title="Edit Record">
+                                                class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition" title="Edit Record">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <a href="javascript:void(0)"
                                                 onclick="confirmDelete(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>', '<?php echo date('d M Y', strtotime($record['visit_date'])); ?>')"
-                                                class="text-red-600 hover:text-red-800 transition" title="Delete Record">
+                                                class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Delete Record">
                                                 <i class="fas fa-trash"></i>
                                             </a>
                                         </div>
@@ -234,20 +332,62 @@ include '../../includes/sidebar.php';
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                                     <i class="fas fa-notes-medical text-4xl mb-3 opacity-50"></i>
                                     <p>No medical records found</p>
                                     <a href="create.php<?php echo $patient_id ? '?patient_id=' . $patient_id : ''; ?>"
                                         class="text-blue-600 hover:underline mt-2 inline-block">
                                         Create your first record
                                     </a>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
+                                </td
+                                    </tr>
+                            <?php endif; ?>
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Prescription Modal -->
+<div id="prescriptionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 rounded-t-2xl flex justify-between items-center">
+            <div>
+                <h3 class="font-bold text-white text-xl">Add Prescription</h3>
+                <p class="text-purple-100 text-sm" id="modalPatientName">Patient: </p>
+            </div>
+            <button onclick="closePrescriptionModal()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+        </div>
+
+        <form id="prescriptionForm" class="p-6">
+            <input type="hidden" name="record_id" id="prescriptionRecordId">
+            <input type="hidden" name="add_prescription_ajax" value="1">
+
+            <div id="prescRows" class="space-y-3">
+                <div class="presc-row bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div class="grid grid-cols-3 gap-3 mb-2">
+                        <input type="text" name="medicine_name[]" placeholder="Medicine Name"
+                            class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                        <input type="text" name="dosage[]" placeholder="Dosage (e.g. 500mg)"
+                            class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                        <input type="text" name="duration[]" placeholder="Duration (e.g. 7 days)"
+                            class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                    </div>
+                    <input type="text" name="prescription_notes[]" placeholder="Instructions (optional)"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none">
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-4">
+                <button type="button" onclick="addPrescRow()" class="text-sm text-purple-600 font-bold hover:underline flex items-center gap-1">
+                    <i class="fas fa-plus"></i> Add Another Medicine
+                </button>
+                <button type="submit" class="ml-auto bg-purple-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-purple-700 transition shadow-md flex items-center gap-2">
+                    <i class="fas fa-save"></i> Save Prescription(s)
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -257,4 +397,79 @@ include '../../includes/sidebar.php';
             window.location.href = `delete.php?id=${id}`;
         }
     }
+
+    function openPrescriptionModal(recordId, patientName) {
+        document.getElementById('prescriptionRecordId').value = recordId;
+        document.getElementById('modalPatientName').innerHTML = 'Patient: ' + patientName;
+        document.getElementById('prescriptionModal').classList.remove('hidden');
+        document.getElementById('prescriptionModal').classList.add('flex');
+    }
+
+    function closePrescriptionModal() {
+        document.getElementById('prescriptionModal').classList.add('hidden');
+        document.getElementById('prescriptionModal').classList.remove('flex');
+        // Reset form
+        document.getElementById('prescriptionForm').reset();
+        const container = document.getElementById('prescRows');
+        container.innerHTML = `
+            <div class="presc-row bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div class="grid grid-cols-3 gap-3 mb-2">
+                    <input type="text" name="medicine_name[]" placeholder="Medicine Name"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                    <input type="text" name="dosage[]" placeholder="Dosage (e.g. 500mg)"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                    <input type="text" name="duration[]" placeholder="Duration (e.g. 7 days)"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                </div>
+                <input type="text" name="prescription_notes[]" placeholder="Instructions (optional)"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none">
+            </div>
+        `;
+    }
+
+    function addPrescRow() {
+        const container = document.getElementById('prescRows');
+        const row = document.createElement('div');
+        row.className = 'presc-row bg-gray-50 rounded-xl p-4 border border-gray-100 relative';
+        row.innerHTML = `
+            <div class="absolute top-2 right-2">
+                <button type="button" onclick="this.closest('.presc-row').remove()" class="text-red-400 hover:text-red-600 text-sm">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mb-2">
+                <input type="text" name="medicine_name[]" placeholder="Medicine Name" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                <input type="text" name="dosage[]" placeholder="Dosage (e.g. 500mg)" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+                <input type="text" name="duration[]" placeholder="Duration (e.g. 7 days)" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none" required>
+            </div>
+            <input type="text" name="prescription_notes[]" placeholder="Instructions (optional)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 outline-none">
+        `;
+        container.appendChild(row);
+    }
+
+    document.getElementById('prescriptionForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        const response = await fetch('index.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert(result.message);
+        }
+    });
+
+    // Close modal on outside click
+    document.getElementById('prescriptionModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePrescriptionModal();
+        }
+    });
 </script>
