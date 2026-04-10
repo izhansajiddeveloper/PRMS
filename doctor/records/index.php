@@ -126,6 +126,71 @@ include '../../includes/header.php';
 include '../../includes/sidebar.php';
 ?>
 
+<style>
+    .action-icons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .action-icons a,
+    .action-icons button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .action-icons .btn-report {
+        background-color: #10b981;
+        color: white;
+    }
+
+    .action-icons .btn-report:hover {
+        background-color: #059669;
+    }
+
+    .action-icons .btn-prescription {
+        background-color: #8b5cf6;
+        color: white;
+    }
+
+    .action-icons .btn-prescription:hover {
+        background-color: #7c3aed;
+    }
+
+    .action-icons .btn-manage {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .action-icons .btn-manage:hover {
+        background-color: #2563eb;
+    }
+
+    .action-icons .btn-edit {
+        background-color: #f59e0b;
+        color: white;
+    }
+
+    .action-icons .btn-edit:hover {
+        background-color: #d97706;
+    }
+
+    .action-icons .btn-delete {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .action-icons .btn-delete:hover {
+        background-color: #dc2626;
+    }
+</style>
+
 <!-- Main Content -->
 <div class="flex-1 overflow-y-auto bg-gray-50">
     <div class="p-6">
@@ -249,7 +314,7 @@ include '../../includes/sidebar.php';
                                 $all_tests_completed = ($test_info['total_tests'] > 0 && $test_info['total_tests'] == $test_info['completed_tests']);
                             ?>
                                 <tr class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-4 text-sm text-gray-800">
+                                    <td class="px-6 py-4 text-sm text-gray-800 whitespace-nowrap">
                                         <?php echo date('d M Y, h:i A', strtotime($record['visit_date'])); ?>
                                     </td>
                                     <td class="px-6 py-4">
@@ -263,7 +328,7 @@ include '../../includes/sidebar.php';
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">
+                                    <td class="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate">
                                         <?php echo htmlspecialchars(substr($record['symptoms'], 0, 50)) . (strlen($record['symptoms']) > 50 ? '...' : ''); ?>
                                     </td>
                                     <td class="px-6 py-4">
@@ -293,62 +358,52 @@ include '../../includes/sidebar.php';
                                                 No Tests
                                             </span>
                                         <?php endif; ?>
-                                </tr>
-                                <td class="px-6 py-4">
-                                    <?php if ($pres_count > 0): ?>
-                                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                            <i class="fas fa-pills mr-1"></i> <?php echo $pres_count; ?> medicines
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
-                                            0 medicines
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex space-x-2">
-                                        <!-- Eye Icon for View Report -->
-                                        <a href="report.php?id=<?php echo $record['id']; ?>"
-                                            class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center" title="View Patient Report">
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <?php if ($pres_count > 0): ?>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-pills mr-1"></i> <?php echo $pres_count; ?> medicines
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
+                                                0 medicines
+                                            </span>
+                                        <?php endif; ?>
+                                        </td>   
+                                        <td class="px-6 py-4">
+                                    <div class="action-icons">
+                                        <!-- View Report -->
+                                        <a href="report.php?id=<?php echo $record['id']; ?>" class="btn-report" title="View Report">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <!-- Add Prescription Button (only if no prescriptions and tests are completed or no tests) -->
-                                        <?php if ($pres_count == 0 && (!$record['has_tests'] || $all_tests_completed)): ?>
-                                            <button onclick="openPrescriptionModal(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>')"
-                                                class="bg-purple-500 text-white p-2 rounded-lg hover:bg-purple-600 transition flex items-center justify-center" title="Add Prescription">
-                                                <i class="fas fa-prescription-bottle-alt"></i>
-                                            </button>
-                                        <?php endif; ?>
-                                        <!-- Manage Button -->
-                                        <a href="view.php?id=<?php echo $record['id']; ?>"
-                                            class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition flex items-center justify-center" title="Manage Record">
+                                        <!-- Manage Record -->
+                                        <a href="view.php?id=<?php echo $record['id']; ?>" class="btn-manage" title="Manage Record">
                                             <i class="fas fa-file-medical-alt"></i>
                                         </a>
-                                        <a href="edit.php?id=<?php echo $record['id']; ?>"
-                                            class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition" title="Edit Record">
+                                        <!-- Edit Record -->
+                                        <a href="edit.php?id=<?php echo $record['id']; ?>" class="btn-edit" title="Edit Record">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="javascript:void(0)"
-                                            onclick="confirmDelete(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>', '<?php echo date('d M Y', strtotime($record['visit_date'])); ?>')"
-                                            class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Delete Record">
+                                        <!-- Delete Record -->
+                                        <a href="javascript:void(0)" onclick="confirmDelete(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>', '<?php echo date('d M Y', strtotime($record['visit_date'])); ?>')" class="btn-delete" title="Delete Record">
                                             <i class="fas fa-trash"></i>
                                         </a>
                                     </div>
-                                </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                                    <i class="fas fa-notes-medical text-4xl mb-3 opacity-50"></i>
-                                    <p>No medical records found</p>
-                                    <a href="create.php<?php echo $patient_id ? '?patient_id=' . $patient_id : ''; ?>"
-                                        class="text-blue-600 hover:underline mt-2 inline-block">
-                                        Create your first record
-                                    </a>
-                                </td
-                                    </tr>
-                            <?php endif; ?>
+                                        </td>
+                                        </tr>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                        <i class="fas fa-notes-medical text-4xl mb-3 opacity-50"></i>
+                                        <p>No medical records found</p>
+                                        <a href="create.php<?php echo $patient_id ? '?patient_id=' . $patient_id : ''; ?>"
+                                            class="text-blue-600 hover:underline mt-2 inline-block">
+                                            Create your first record
+                                        </a>
+                                    </td
+                                        </tr>
+                                <?php endif; ?>
                     </tbody>
                 </table>
             </div>
