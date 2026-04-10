@@ -71,8 +71,6 @@ $this_month_records_result = mysqli_query($conn, $this_month_records_query);
 $this_month_records = mysqli_fetch_assoc($this_month_records_result)['total'];
 
 // Handle prescription submission via AJAX
-$presc_success = '';
-$presc_error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_prescription_ajax'])) {
     header('Content-Type: application/json');
     $record_id = (int)$_POST['record_id'];
@@ -90,6 +88,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_prescription_ajax
         exit();
     }
 
+    // Get the appointment_id from the record
+    $get_appointment = mysqli_query($conn, "SELECT appointment_id FROM records WHERE id = $record_id");
+    $appointment_data = mysqli_fetch_assoc($get_appointment);
+    $appointment_id = $appointment_data['appointment_id'] ?? 0;
+
     $added = 0;
     for ($i = 0; $i < count($medicines); $i++) {
         if (!empty($medicines[$i])) {
@@ -105,6 +108,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_prescription_ajax
     }
 
     if ($added > 0) {
+        // Update appointment status to completed
+        if ($appointment_id > 0) {
+            $update_app = "UPDATE appointments SET status = 'completed' WHERE id = ?";
+            $us = mysqli_prepare($conn, $update_app);
+            mysqli_stmt_bind_param($us, 'i', $appointment_id);
+            mysqli_stmt_execute($us);
+        }
         echo json_encode(['success' => true, 'message' => "$added prescription(s) added successfully", 'count' => $added]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Please fill at least one medicine']);
@@ -283,51 +293,48 @@ include '../../includes/sidebar.php';
                                                 No Tests
                                             </span>
                                         <?php endif; ?>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <?php if ($pres_count > 0): ?>
-                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                                <i class="fas fa-pills mr-1"></i> <?php echo $pres_count; ?> medicines
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
-                                                0 medicines
-                                            </span>
+                                </tr>
+                                <td class="px-6 py-4">
+                                    <?php if ($pres_count > 0): ?>
+                                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                            <i class="fas fa-pills mr-1"></i> <?php echo $pres_count; ?> medicines
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
+                                            0 medicines
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex space-x-2">
+                                        <!-- Eye Icon for View Report -->
+                                        <a href="report.php?id=<?php echo $record['id']; ?>"
+                                            class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center" title="View Patient Report">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <!-- Add Prescription Button (only if no prescriptions and tests are completed or no tests) -->
+                                        <?php if ($pres_count == 0 && (!$record['has_tests'] || $all_tests_completed)): ?>
+                                            <button onclick="openPrescriptionModal(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>')"
+                                                class="bg-purple-500 text-white p-2 rounded-lg hover:bg-purple-600 transition flex items-center justify-center" title="Add Prescription">
+                                                <i class="fas fa-prescription-bottle-alt"></i>
+                                            </button>
                                         <?php endif; ?>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="flex space-x-2">
-                                            <!-- Eye Icon for View Report -->
-                                            <a href="report.php?id=<?php echo $record['id']; ?>"
-                                                class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center" title="View Patient Report">
-                                                <i class="fas fa-eye mr-1"></i>
-                                                <!-- <span class="text-xs font-bold">Report</span> -->
-                                            </a>
-                                            <!-- Add Prescription Button (only if no prescriptions and tests are completed or no tests) -->
-                                            <?php if ($pres_count == 0 && (!$record['has_tests'] || $all_tests_completed)): ?>
-                                                <button onclick="openPrescriptionModal(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>')"
-                                                    class="bg-purple-500 text-white p-2 rounded-lg hover:bg-purple-600 transition flex items-center justify-center" title="Add Prescription">
-                                                    <i class="fas fa-prescription-bottle-alt mr-1"></i>
-                                                    <!-- <span class="text-xs font-bold">Add Rx</span> -->
-                                                </button>
-                                            <?php endif; ?>
-                                            <!-- Manage Button -->
-                                            <a href="view.php?id=<?php echo $record['id']; ?>"
-                                                class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition flex items-center justify-center" title="Manage Record">
-                                                <i class="fas fa-file-medical-alt mr-1"></i>
-                                                <!-- <span class="text-xs font-bold">Manage</span> -->
-                                            </a>
-                                            <a href="edit.php?id=<?php echo $record['id']; ?>"
-                                                class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition" title="Edit Record">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="javascript:void(0)"
-                                                onclick="confirmDelete(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>', '<?php echo date('d M Y', strtotime($record['visit_date'])); ?>')"
-                                                class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Delete Record">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        </div>
-                                    </td>
+                                        <!-- Manage Button -->
+                                        <a href="view.php?id=<?php echo $record['id']; ?>"
+                                            class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition flex items-center justify-center" title="Manage Record">
+                                            <i class="fas fa-file-medical-alt"></i>
+                                        </a>
+                                        <a href="edit.php?id=<?php echo $record['id']; ?>"
+                                            class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition" title="Edit Record">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="javascript:void(0)"
+                                            onclick="confirmDelete(<?php echo $record['id']; ?>, '<?php echo htmlspecialchars($record['patient_name']); ?>', '<?php echo date('d M Y', strtotime($record['visit_date'])); ?>')"
+                                            class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition" title="Delete Record">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>

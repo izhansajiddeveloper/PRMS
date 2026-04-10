@@ -21,7 +21,7 @@ $doctor_result = mysqli_stmt_get_result($stmt);
 $doctor = mysqli_fetch_assoc($doctor_result);
 $doctor_id = $doctor['id'];
 
-// Get statistics
+// Get statistics - REAL DATA
 $total_patients_query = "SELECT COUNT(DISTINCT patient_id) as total FROM records WHERE doctor_id = ?";
 $stmt = mysqli_prepare($conn, $total_patients_query);
 mysqli_stmt_bind_param($stmt, "i", $doctor_id);
@@ -42,23 +42,33 @@ mysqli_stmt_bind_param($stmt, "is", $doctor_id, $today_date);
 mysqli_stmt_execute($stmt);
 $today_appointments = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
 
+// FIXED: Count pending appointments correctly
 $pending_appointments_query = "SELECT COUNT(*) as total FROM appointments WHERE doctor_id = ? AND status = 'pending'";
 $stmt = mysqli_prepare($conn, $pending_appointments_query);
 mysqli_stmt_bind_param($stmt, "i", $doctor_id);
 mysqli_stmt_execute($stmt);
 $pending_appointments = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
 
+// FIXED: Count completed appointments correctly
 $completed_appointments_query = "SELECT COUNT(*) as total FROM appointments WHERE doctor_id = ? AND status = 'completed'";
 $stmt = mysqli_prepare($conn, $completed_appointments_query);
 mysqli_stmt_bind_param($stmt, "i", $doctor_id);
 mysqli_stmt_execute($stmt);
 $completed_appointments = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
 
-// Recent Patients
+// Calculate completion rate based on ALL appointments (not just pending+completed, but also include cancelled if any)
+$total_all_appointments_query = "SELECT COUNT(*) as total FROM appointments WHERE doctor_id = ?";
+$stmt = mysqli_prepare($conn, $total_all_appointments_query);
+mysqli_stmt_bind_param($stmt, "i", $doctor_id);
+mysqli_stmt_execute($stmt);
+$total_all_appointments = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
+
+$completion_rate = $total_all_appointments > 0 ? round(($completed_appointments / $total_all_appointments) * 100) : 0;
+
+// Recent Patients with actual data
 $recent_patients_query = "SELECT DISTINCT p.*, 
                           MAX(r.visit_date) as last_visit,
-                          CASE WHEN EXISTS (SELECT 1 FROM appointments a WHERE a.patient_id = p.id AND a.doctor_id = ? AND a.status = 'pending' AND DATE(a.appointment_date) = CURDATE()) THEN 1 ELSE 0 END as has_today_appointment,
-                          CASE WHEN EXISTS (SELECT 1 FROM records r2 WHERE r2.patient_id = p.id AND r2.doctor_id = ? AND DATE(r2.visit_date) = CURDATE()) THEN 1 ELSE 0 END as has_record_today
+                          (SELECT COUNT(*) FROM records WHERE patient_id = p.id AND doctor_id = ?) as total_visits
                           FROM patients p
                           JOIN records r ON p.id = r.patient_id
                           WHERE r.doctor_id = ?
@@ -66,13 +76,14 @@ $recent_patients_query = "SELECT DISTINCT p.*,
                           ORDER BY last_visit DESC
                           LIMIT 5";
 $stmt = mysqli_prepare($conn, $recent_patients_query);
-mysqli_stmt_bind_param($stmt, "iii", $doctor_id, $doctor_id, $doctor_id);
+mysqli_stmt_bind_param($stmt, "ii", $doctor_id, $doctor_id);
 mysqli_stmt_execute($stmt);
 $recent_patients_result = mysqli_stmt_get_result($stmt);
 
-// Today's Appointments
-$today_appointments_list_query = "SELECT a.*, p.name as patient_name, p.age, p.gender, p.phone,
-                                  CASE WHEN r.id IS NOT NULL THEN 1 ELSE 0 END as has_record
+// Today's Appointments with real data
+$today_appointments_list_query = "SELECT a.*, p.name as patient_name, p.age, p.gender, p.phone, p.blood_group,
+                                  CASE WHEN r.id IS NOT NULL THEN 1 ELSE 0 END as has_record,
+                                  r.id as record_id
                                   FROM appointments a
                                   JOIN patients p ON a.patient_id = p.id
                                   LEFT JOIN records r ON r.patient_id = p.id AND r.doctor_id = a.doctor_id AND DATE(r.visit_date) = DATE(a.appointment_date)
@@ -83,7 +94,20 @@ mysqli_stmt_bind_param($stmt, "is", $doctor_id, $today_date);
 mysqli_stmt_execute($stmt);
 $today_appointments_list = mysqli_stmt_get_result($stmt);
 
-// Weekly Data
+// Today's Appointments by Hour for Chart
+$hourly_data = array_fill(0, 12, 0);
+$appointments_for_hour = [];
+while ($app = mysqli_fetch_assoc($today_appointments_list)) {
+    $hour = date('H', strtotime($app['appointment_date']));
+    if ($hour >= 9 && $hour <= 20) {
+        $hourly_data[$hour - 9]++;
+        $appointments_for_hour[] = $app;
+    }
+}
+// Reset pointer
+mysqli_data_seek($today_appointments_list, 0);
+
+// Weekly Data - REAL DATA
 $weekly_data = [];
 $weekly_labels = [];
 for ($i = 6; $i >= 0; $i--) {
@@ -97,8 +121,8 @@ for ($i = 6; $i >= 0; $i--) {
     $weekly_labels[] = date('D, M d', strtotime($date));
 }
 
-// Common Diagnoses
-$diagnosis_query = "SELECT diagnosis, COUNT(*) as total FROM records WHERE doctor_id = ? GROUP BY diagnosis ORDER BY total DESC LIMIT 5";
+// Common Diagnoses - REAL DATA
+$diagnosis_query = "SELECT diagnosis, COUNT(*) as total FROM records WHERE doctor_id = ? AND diagnosis IS NOT NULL AND diagnosis != '' GROUP BY diagnosis ORDER BY total DESC LIMIT 5";
 $stmt = mysqli_prepare($conn, $diagnosis_query);
 mysqli_stmt_bind_param($stmt, "i", $doctor_id);
 mysqli_stmt_execute($stmt);
@@ -110,7 +134,7 @@ while ($row = mysqli_fetch_assoc($diagnosis_result)) {
     $diagnosis_counts[] = $row['total'];
 }
 
-// Monthly Earnings
+// Monthly Earnings - REAL DATA
 $current_month_start = date('Y-m-01 00:00:00');
 $current_month_end = date('Y-m-t 23:59:59');
 $earnings_query = "SELECT COUNT(*) as total FROM appointments WHERE doctor_id = ? AND status = 'completed' AND appointment_date BETWEEN ? AND ?";
@@ -118,495 +142,446 @@ $stmt = mysqli_prepare($conn, $earnings_query);
 mysqli_stmt_bind_param($stmt, "iss", $doctor_id, $current_month_start, $current_month_end);
 mysqli_stmt_execute($stmt);
 $completed_this_month = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
-$monthly_earnings = $completed_this_month * $doctor['consultation_fee'];
+$monthly_earnings = $completed_this_month * ($doctor['consultation_fee'] ?? 500);
 
-// Auto-delete expired announcements (Cleanup)
-$cleanup = "DELETE FROM announcements WHERE expiry_at IS NOT NULL AND expiry_at < NOW()";
-mysqli_query($conn, $cleanup);
+// Upcoming Appointments
+$upcoming_query = "SELECT a.*, p.name as patient_name, p.age, p.gender 
+                   FROM appointments a
+                   JOIN patients p ON a.patient_id = p.id
+                   WHERE a.doctor_id = ? AND a.appointment_date > NOW() AND a.status = 'pending'
+                   ORDER BY a.appointment_date ASC
+                   LIMIT 5";
+$stmt = mysqli_prepare($conn, $upcoming_query);
+mysqli_stmt_bind_param($stmt, "i", $doctor_id);
+mysqli_stmt_execute($stmt);
+$upcoming_appointments = mysqli_stmt_get_result($stmt);
 
 include '../includes/header.php';
 include '../includes/sidebar.php';
 ?>
 
 <style>
-    body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        background: #f4f6f9;
+    .dashboard-card {
+        transition: all 0.3s ease;
     }
 
-    .dashboard-container {
-        background: #f4f6f9;
-        min-height: 100vh;
+    .dashboard-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.15);
     }
 
-    .stat-card {
-        background: #ffffff;
-        border-radius: 20px;
-        padding: 24px;
-        border: 1px solid #eef2f6;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        transition: all 0.2s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-    }
-
-    .icon-box {
-        width: 50px;
-        height: 50px;
-        border-radius: 14px;
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
     }
 
-    .icon-blue {
-        background: #eef2ff;
-        color: #4f46e5;
-    }
-
-    .icon-emerald {
-        background: #ecfdf5;
-        color: #10b981;
-    }
-
-    .icon-amber {
-        background: #fffbeb;
-        color: #f59e0b;
-    }
-
-    .icon-purple {
-        background: #f5f3ff;
-        color: #8b5cf6;
-    }
-
-    .icon-red {
-        background: #fef2f2;
-        color: #ef4444;
-    }
-
-    .badge-status {
-        padding: 5px 12px;
-        border-radius: 30px;
-        font-size: 11px;
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 10px;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
     }
 
-    .bg-indigo-premium {
-        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+    .status-pending {
+        background: #fef3c7;
+        color: #92400e;
     }
 
-    .bg-emerald-premium {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    .status-completed {
+        background: #d1fae5;
+        color: #065f46;
     }
 
-    .btn-action {
-        padding: 8px 18px;
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 600;
-        transition: all 0.2s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-indigo {
-        background: #4f46e5;
-        color: white;
-    }
-
-    .btn-indigo:hover {
-        background: #4338ca;
-    }
-
-    .btn-outline-indigo {
-        border: 1.5px solid #e0e7ff;
-        color: #4f46e5;
-        background: transparent;
-    }
-
-    .btn-outline-indigo:hover {
-        background: #eef2ff;
-        border-color: #4f46e5;
+    .chart-container {
+        position: relative;
+        height: 220px;
+        width: 100%;
     }
 </style>
 
-<div class="dashboard-container">
+<div class="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
     <div class="p-8">
-        <!-- Page Header -->
-        <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Doctor Dashboard</h1>
-                <p class="text-gray-500 mt-1">Welcome back, <?php echo htmlspecialchars($_SESSION['user_name']); ?>!</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="bg-white rounded-xl px-4 py-2 border border-gray-200">
-                    <i class="far fa-calendar-alt text-gray-400 mr-2"></i>
-                    <span class="text-sm font-medium text-gray-700"><?php echo date('l, F j, Y'); ?></span>
-                </div>
-                <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2">
-                    <i class="fas fa-stethoscope text-indigo-500 mr-2"></i>
-                    <span class="text-sm font-bold text-indigo-700"><?php echo htmlspecialchars($doctor['specialization']); ?></span>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- Metric Statistics Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            <!-- Total Patients -->
-            <div class="stat-card">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Patients</p>
-                        <h3 class="text-3xl font-bold text-gray-900"><?php echo number_format($total_patients); ?></h3>
-                    </div>
-                    <div class="icon-box icon-blue">
-                        <i class="fas fa-users"></i>
-                    </div>
-                </div>
-                <p class="text-[11px] text-indigo-500 font-bold mt-4 bg-indigo-50 inline-block px-2 py-0.5 rounded uppercase">Lifetime</p>
-            </div>
-
-            <!-- Total Visits -->
-            <div class="stat-card">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Visits</p>
-                        <h3 class="text-3xl font-bold text-gray-900"><?php echo number_format($total_records); ?></h3>
-                    </div>
-                    <div class="icon-box icon-emerald">
-                        <i class="fas fa-notes-medical"></i>
-                    </div>
-                </div>
-                <p class="text-[11px] text-emerald-500 font-bold mt-4 bg-emerald-50 inline-block px-2 py-0.5 rounded uppercase">Clinical</p>
-            </div>
-
-            <!-- Today's Appointments -->
-            <div class="stat-card">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Today's List</p>
-                        <h3 class="text-3xl font-bold text-gray-900"><?php echo $today_appointments; ?></h3>
-                    </div>
-                    <div class="icon-box icon-purple">
-                        <i class="fas fa-calendar-day"></i>
-                    </div>
-                </div>
-                <p class="text-[11px] text-purple-500 font-bold mt-4 bg-purple-50 inline-block px-2 py-0.5 rounded uppercase">Active</p>
-            </div>
-
-            <!-- Pending -->
-            <div class="stat-card">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Pending Queue</p>
-                        <h3 class="text-3xl font-bold text-gray-900"><?php echo $pending_appointments; ?></h3>
-                    </div>
-                    <div class="icon-box icon-amber">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                </div>
-                <p class="text-[11px] text-amber-500 font-bold mt-4 bg-amber-50 inline-block px-2 py-0.5 rounded uppercase">Awaiting</p>
-            </div>
-
-            <!-- Earnings -->
-            <div class="stat-card">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Monthly Earnings</p>
-                        <h3 class="text-2xl font-bold text-gray-900">Rs <?php echo number_format($monthly_earnings, 0); ?></h3>
-                    </div>
-                    <div class="icon-box icon-red">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                </div>
-                <p class="text-[11px] text-red-500 font-bold mt-4 bg-red-50 inline-block px-2 py-0.5 rounded uppercase">Revenue</p>
-            </div>
-        </div>
-
-        <!-- Premium Status Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Completion Card -->
-            <div class="bg-indigo-premium rounded-2xl p-5 shadow-lg shadow-indigo-200 text-white flex items-center justify-between">
+        <!-- Welcome Header -->
+        <div class="mb-8">
+            <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-indigo-100 text-[10px] font-bold mb-1 uppercase tracking-widest">Completion Rate</p>
-                    <?php
-                    $total_appointments = $completed_appointments + $pending_appointments;
-                    $rate = $total_appointments > 0 ? round(($completed_appointments / $total_appointments) * 100) : 0;
-                    ?>
-                    <h2 class="text-3xl font-bold"><?php echo $rate; ?>%</h2>
-                    <p class="text-indigo-200 text-[10px] mt-1 font-semibold uppercase"><?php echo $completed_appointments; ?> Finished</p>
+                    <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
+                        Welcome back, <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Dr. <?php echo htmlspecialchars($doctor['name']); ?></span>
+                    </h1>
+                    <p class="text-gray-500 mt-2 flex items-center gap-2">
+                        <i class="fas fa-stethoscope text-blue-500"></i>
+                        <?php echo htmlspecialchars($doctor['specialization']); ?> Specialist
+                        <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                        <i class="fas fa-calendar-alt text-green-500"></i>
+                        <?php echo date('l, F j, Y'); ?>
+                        <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                        <i class="fas fa-clock text-purple-500"></i>
+                        <?php echo date('h:i A'); ?>
+                    </p>
                 </div>
-                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                    <i class="fas fa-chart-line text-xl"></i>
-                </div>
-            </div>
-
-            <!-- Quick Record Card -->
-            <div class="bg-emerald-premium rounded-2xl p-5 shadow-lg shadow-emerald-200 text-white flex items-center justify-between">
-                <div>
-                    <p class="text-emerald-100 text-[10px] font-bold mb-1 uppercase tracking-widest">Cons. Fee</p>
-                    <h2 class="text-3xl font-bold">Rs<?php echo number_format($doctor['consultation_fee'], 0); ?></h2>
-                    <p class="text-emerald-200 text-[10px] mt-1 font-semibold uppercase">Per Visit</p>
-                </div>
-                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                    <i class="fas fa-rupee-sign text-xl"></i>
-                </div>
-            </div>
-
-            <!-- Action Card -->
-            <div class="bg-white rounded-2xl p-5 border border-gray-100 flex flex-col justify-center">
-                <div>
-                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Actions</h4>
-                    <div class="flex flex-wrap gap-2">
-                        <a href="appointments.php" class="btn-action btn-indigo !py-1.5 !px-3 !text-xs">
-                            <i class="fas fa-plus"></i> New Record
-                        </a>
-                        <a href="patients.php" class="btn-action btn-outline-indigo !py-1.5 !px-3 !text-xs">
-                            <i class="fas fa-search"></i> Search
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tables & Charts Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Today's Schedule -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                    <h3 class="text-lg font-bold text-gray-900">Today's Schedule</h3>
-                    <a href="appointments.php" class="text-indigo-600 text-sm font-bold hover:underline">View All Schedule →</a>
-                </div>
-                <div class="max-h-[450px] overflow-y-auto">
-                    <?php if (mysqli_num_rows($today_appointments_list) > 0): ?>
-                        <?php while ($appointment = mysqli_fetch_assoc($today_appointments_list)): ?>
-                            <div class="p-5 border-b border-gray-50 hover:bg-gray-50/80 transition flex items-center justify-between">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg">
-                                        <?php echo strtoupper(substr($appointment['patient_name'], 0, 1)); ?>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-bold text-gray-900"><?php echo htmlspecialchars($appointment['patient_name']); ?></h4>
-                                        <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 mt-1 uppercase tracking-wider">
-                                            <span><?php echo $appointment['age']; ?> Yrs</span>
-                                            <span class="text-indigo-400">•</span>
-                                            <span><?php echo $appointment['gender']; ?></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-sm font-bold text-gray-700 mb-2">
-                                        <i class="far fa-clock text-slate-400 mr-2"></i><?php echo date('h:i A', strtotime($appointment['appointment_date'])); ?>
-                                    </div>
-                                    <?php if ($appointment['has_record']): ?>
-                                        <span class="badge-status bg-emerald-100 text-emerald-700">Finished</span>
-                                    <?php else: ?>
-                                        <a href="records/create.php?patient_id=<?php echo $appointment['patient_id']; ?>" class="badge-status bg-indigo-100 text-indigo-700 hover:bg-indigo-200">Start Session</a>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endwhile; ?>
-                    <?php else: ?>
-                        <div class="text-center py-20 text-gray-400">
-                            <i class="fas fa-calendar-check text-5xl mb-4 opacity-20"></i>
-                            <p class="font-medium">No appointments for today</p>
+                <div class="bg-white rounded-2xl shadow-sm px-5 py-3 border border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white"></i>
                         </div>
-                    <?php endif; ?>
+                        <div>
+                            <p class="text-xs text-gray-400 uppercase tracking-wider">Consultation Fee</p>
+                            <p class="text-lg font-bold text-gray-800">₹<?php echo number_format($doctor['consultation_fee'] ?? 500, 0); ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+            <div class="dashboard-card bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Total Patients</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1"><?php echo number_format($total_patients); ?></p>
+                        <p class="text-xs text-green-600 mt-2">Lifetime</p>
+                    </div>
+                    <div class="stat-icon bg-blue-50">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
                 </div>
             </div>
 
-            <!-- Recent Patients -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                    <h3 class="text-lg font-bold text-gray-900">Recent Patients</h3>
-                    <a href="patients.php" class="text-indigo-600 text-sm font-bold hover:underline">Full Directory →</a>
+            <div class="dashboard-card bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Total Visits</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1"><?php echo number_format($total_records); ?></p>
+                        <p class="text-xs text-gray-500 mt-2">All time</p>
+                    </div>
+                    <div class="stat-icon bg-emerald-50">
+                        <i class="fas fa-notes-medical text-emerald-600 text-xl"></i>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50/50">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Patient Details</th>
-                                <th class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Last Visit</th>
-                                <th class="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <?php while ($patient = mysqli_fetch_assoc($recent_patients_result)): ?>
-                                <tr class="hover:bg-gray-50/80 transition">
-                                    <td class="px-6 py-5">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
-                                                <?php echo strtoupper(substr($patient['name'], 0, 1)); ?>
-                                            </div>
-                                            <div>
-                                                <p class="font-bold text-gray-900 text-sm"><?php echo htmlspecialchars($patient['name']); ?></p>
-                                                <p class="text-[11px] font-bold text-gray-400 uppercase"><?php echo $patient['age']; ?> Yrs • <?php echo $patient['gender']; ?></p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-5">
-                                        <p class="text-sm font-bold text-gray-700"><?php echo date('d M Y', strtotime($patient['last_visit'])); ?></p>
-                                        <p class="text-[10px] font-medium text-gray-400">Regular Visit</p>
-                                    </td>
-                                    <td class="px-6 py-5 text-center">
-                                        <a href="records/create.php?patient_id=<?php echo $patient['id']; ?>" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold uppercase tracking-wider">New Visit</a>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
+            </div>
+
+            <div class="dashboard-card bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Today's Schedule</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1"><?php echo $today_appointments; ?></p>
+                        <p class="text-xs text-purple-600 mt-2">Pending: <?php echo $pending_appointments; ?></p>
+                    </div>
+                    <div class="stat-icon bg-purple-50">
+                        <i class="fas fa-calendar-day text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Completion Rate</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-1"><?php echo $completion_rate; ?>%</p>
+                        <p class="text-xs text-gray-500 mt-2"><?php echo $completed_appointments; ?> completed / <?php echo $total_all_appointments; ?> total</p>
+                    </div>
+                    <div class="stat-icon bg-green-50">
+                        <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-5 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-white/80 font-semibold uppercase tracking-wider">Monthly Earnings</p>
+                        <p class="text-3xl font-bold mt-1">₹<?php echo number_format($monthly_earnings, 0); ?></p>
+                        <p class="text-xs text-white/70 mt-2">This month</p>
+                    </div>
+                    <div class="stat-icon bg-white/20">
+                        <i class="fas fa-wallet text-white text-xl"></i>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Charts Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
-                <div class="mb-1 flex justify-between items-center px-1">
-                    <h3 class="text-[11px] font-bold text-gray-900 uppercase tracking-widest">Growth Trends</h3>
-                    <p class="text-[9px] text-gray-400 font-bold">7 DAYS</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-chart-bar text-orange-500"></i>
+                        Today's Schedule by Hour
+                    </h3>
+                    <span class="text-xs text-gray-400"><?php echo date('d M Y'); ?></span>
                 </div>
-                <div class="h-[190px] relative">
+                <div class="chart-container" style="height: 220px;">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-chart-line text-blue-500"></i>
+                        Weekly Patient Visits
+                    </h3>
+                    <span class="text-xs text-gray-400">Last 7 days</span>
+                </div>
+                <div class="chart-container" style="height: 220px;">
                     <canvas id="visitsChart"></canvas>
                 </div>
             </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
-                <div class="mb-1 flex justify-between items-center px-1">
-                    <h3 class="text-[11px] font-bold text-gray-900 uppercase tracking-widest">Clinical Mix</h3>
-                    <p class="text-[9px] text-gray-400 font-bold">TOP 5</p>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-purple-500"></i>
+                        Top Diagnoses
+                    </h3>
+                    <span class="text-xs text-gray-400">Most common</span>
                 </div>
-                <div class="h-[190px] relative">
-                    <canvas id="diagnosesChart"></canvas>
+                <div class="chart-container" style="height: 220px;">
+                    <?php if (count($diagnosis_names) > 0): ?>
+                        <canvas id="diagnosesChart"></canvas>
+                    <?php else: ?>
+                        <div class="h-full flex items-center justify-center">
+                            <p class="text-gray-400">No diagnosis data available yet</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Links Footer (Receptionist Style) -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <a href="patients.php" class="flex items-center p-5 bg-indigo-50 border border-indigo-100 rounded-2xl hover:bg-indigo-100 transition group">
-                <div class="w-12 h-12 bg-indigo-100 group-hover:bg-indigo-200 rounded-xl flex items-center justify-center mr-4 transition">
-                    <i class="fas fa-user-injured text-indigo-600 text-xl"></i>
+        <!-- Today's Appointments List -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-clock text-blue-500"></i>
+                        Today's Appointments
+                    </h3>
+                    <a href="appointments.php" class="text-xs text-blue-600 hover:text-blue-700 font-semibold">View All →</a>
                 </div>
-                <div>
-                    <p class="font-bold text-gray-900">Patients List</p>
-                    <p class="text-xs text-gray-500 font-medium">Manage patient profiles</p>
-                </div>
-            </a>
-            <a href="appointments.php" class="flex items-center p-5 bg-emerald-50 border border-emerald-100 rounded-2xl hover:bg-emerald-100 transition group">
-                <div class="w-12 h-12 bg-emerald-100 group-hover:bg-emerald-200 rounded-xl flex items-center justify-center mr-4 transition">
-                    <i class="fas fa-calendar-check text-emerald-600 text-xl"></i>
-                </div>
-                <div>
-                    <p class="font-bold text-gray-900">Appointments</p>
-                    <p class="text-xs text-gray-500 font-medium">Check daily schedule</p>
-                </div>
-            </a>
-            <a href="records/index.php" class="flex items-center p-5 bg-purple-50 border border-purple-100 rounded-2xl hover:bg-purple-100 transition group">
-                <div class="w-12 h-12 bg-purple-100 group-hover:bg-purple-200 rounded-xl flex items-center justify-center mr-4 transition">
-                    <i class="fas fa-folder-open text-purple-600 text-xl"></i>
-                </div>
-                <div>
-                    <p class="font-bold text-gray-900">Medical Records</p>
-                    <p class="text-xs text-gray-500 font-medium">History & prescriptions</p>
-                </div>
-            </a>
-            <a href="my_earnings.php" class="flex items-center p-5 bg-amber-50 border border-amber-100 rounded-2xl hover:bg-amber-100 transition group">
-                <div class="w-12 h-12 bg-amber-100 group-hover:bg-amber-200 rounded-xl flex items-center justify-center mr-4 transition">
-                    <i class="fas fa-wallet text-amber-600 text-xl"></i>
-                </div>
-                <div>
-                    <p class="font-bold text-gray-900">Financials</p>
-                    <p class="text-xs text-gray-500 font-medium">Review your earnings</p>
-                </div>
-            </a>
+            </div>
+            <div class="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                <?php if (mysqli_num_rows($today_appointments_list) > 0): ?>
+                    <?php while ($appointment = mysqli_fetch_assoc($today_appointments_list)): ?>
+                        <div class="p-4 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white font-bold text-lg">
+                                        <?php echo strtoupper(substr($appointment['patient_name'], 0, 1)); ?>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($appointment['patient_name']); ?></p>
+                                        <div class="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                            <span><?php echo $appointment['age']; ?> yrs</span>
+                                            <span>•</span>
+                                            <span class="capitalize"><?php echo $appointment['gender']; ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-bold text-gray-700">
+                                        <i class="far fa-clock text-gray-400 mr-1"></i>
+                                        <?php echo date('h:i A', strtotime($appointment['appointment_date'])); ?>
+                                    </div>
+                                    <?php if ($appointment['has_record']): ?>
+                                        <span class="status-badge status-completed inline-block mt-1">
+                                            <i class="fas fa-check-circle mr-1"></i> Completed
+                                        </span>
+                                    <?php else: ?>
+                                        <a href="records/create.php?patient_id=<?php echo $appointment['patient_id']; ?>"
+                                            class="status-badge status-pending inline-block mt-1 hover:bg-amber-200 transition">
+                                            <i class="fas fa-plus-circle mr-1"></i> Start Session
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="p-12 text-center">
+                        <i class="fas fa-calendar-check text-5xl text-gray-200 mb-3"></i>
+                        <p class="text-gray-500">No appointments scheduled for today</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Recent Patients Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-users text-green-500"></i>
+                    Recent Patients
+                </h3>
+                <a href="patients.php" class="text-xs text-blue-600 hover:text-blue-700 font-semibold">View All →</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Patient</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Age/Gender</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Last Visit</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total Visits</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <?php while ($patient = mysqli_fetch_assoc($recent_patients_result)): ?>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white text-xs font-bold">
+                                            <?php echo strtoupper(substr($patient['name'], 0, 1)); ?>
+                                        </div>
+                                        <span class="font-medium text-gray-800"><?php echo htmlspecialchars($patient['name']); ?></span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">
+                                    <?php echo $patient['age']; ?> yrs / <?php echo ucfirst($patient['gender']); ?>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">
+                                    <?php echo date('d M Y', strtotime($patient['last_visit'])); ?>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                                        <?php echo $patient['total_visits']; ?> visits
+                                    </span>
+                                </td
+                                    <td class="px-6 py-4">
+                                <a href="records/create.php?patient_id=<?php echo $patient['id']; ?>"
+                                    class="text-blue-600 hover:text-blue-800 text-sm font-semibold">
+                                    New Visit →
+                                </a>
+                                </td
+                                    </tr>
+                            <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Visits Chart
-    const visitsCtx = document.getElementById('visitsChart').getContext('2d');
-    new Chart(visitsCtx, {
-        type: 'line',
-        data: {
-            labels: <?php echo json_encode($weekly_labels); ?>,
-            datasets: [{
-                label: 'Patient Visits',
-                data: <?php echo json_encode($weekly_data); ?>,
-                borderColor: '#4f46e5',
-                backgroundColor: 'rgba(79, 70, 229, 0.05)',
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#4f46e5',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                pointRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
+    // Hourly Appointments Chart
+    const hourlyCtx = document.getElementById('hourlyChart');
+    if (hourlyCtx) {
+        new Chart(hourlyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM'],
+                datasets: [{
+                    label: 'Appointments',
+                    data: <?php echo json_encode($hourly_data); ?>,
+                    backgroundColor: '#f59e0b',
+                    borderRadius: 8,
+                    barPercentage: 0.65
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: '#f0f2f5'
-                    }
-                },
-                x: {
-                    grid: {
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
                         display: false
                     }
-                }
-            }
-        }
-    });
-
-    // Diagnoses Donut
-    const diagnosesCtx = document.getElementById('diagnosesChart').getContext('2d');
-    new Chart(diagnosesCtx, {
-        type: 'doughnut',
-        data: {
-            labels: <?php echo json_encode($diagnosis_names); ?>,
-            datasets: [{
-                data: <?php echo json_encode($diagnosis_counts); ?>,
-                backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-                borderWidth: 0,
-                hoverOffset: 15
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '75%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 20,
-                        usePointStyle: true,
-                        font: {
-                            size: 11,
-                            weight: 'bold'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
                         }
                     }
                 }
             }
-        }
-    });
+        });
+    }
+
+    // Weekly Visits Chart
+    const visitsCtx = document.getElementById('visitsChart');
+    if (visitsCtx) {
+        new Chart(visitsCtx, {
+            type: 'line',
+            data: {
+                labels: <?php echo json_encode($weekly_labels); ?>,
+                datasets: [{
+                    label: 'Patient Visits',
+                    data: <?php echo json_encode($weekly_data); ?>,
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#4f46e5',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Diagnoses Chart
+    const diagnosesCtx = document.getElementById('diagnosesChart');
+    if (diagnosesCtx && <?php echo count($diagnosis_names); ?> > 0) {
+        new Chart(diagnosesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: <?php echo json_encode($diagnosis_names); ?>,
+                datasets: [{
+                    data: <?php echo json_encode($diagnosis_counts); ?>,
+                    backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                    borderWidth: 0,
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 </script>
